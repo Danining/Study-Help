@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Study Web App (Cloud)</title>
+    <title>My Study Web App</title>
     <style>
         :root {
             --primary-color: #6c5ce7;
@@ -25,7 +25,7 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .sub-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-        .sub-tabs button { background: #dfe6e9; color: #636e72; padding: 8px; font-size: 0.8rem; margin: 0; border-radius: 5px; flex: 1; border: none; cursor: pointer; }
+        .sub-tabs button { background: #dfe6e9; color: #636e72; padding: 8px; font-size: 0.8rem; margin: 0; border-radius: 5px; flex: 1; }
         .sub-tabs button.active { background: var(--primary-color); color: white; }
 
         h2 { border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; margin-bottom: 20px; }
@@ -40,6 +40,7 @@
         .btn-edit { background: #00b894; }
         .btn-del { background: #ff7675; }
 
+        /* 달력 */
         .calendar-container { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-weight: bold; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
@@ -66,7 +67,7 @@
 
     <div class="container">
         <section id="planner" class="page active">
-            <h2>📅 스터디 플래너 (Cloud)</h2>
+            <h2>📅 스터디 플래너</h2>
             <div class="calendar-container">
                 <div class="calendar-header">
                     <button onclick="changeMonth(-1)" style="width:40px; margin:0;"><</button>
@@ -83,7 +84,7 @@
             <div id="plan-input-area" class="plan-input-area">
                 <label id="selected-date-label"></label>
                 <input type="text" id="day-plan" maxlength="20" placeholder="계획 (최대 20자)">
-                <button onclick="savePlan()">서버 저장</button>
+                <button onclick="savePlan()">저장</button>
             </div>
         </section>
 
@@ -156,75 +157,42 @@
 
         <section id="settings" class="page">
             <h2>⚙️ 설정</h2>
-            <p>데이터가 클라우드에 자동으로 저장됩니다.</p>
+            <p>설정할 항목이 아직 없습니다.</p>
         </section>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <script>
+        let db_plans = JSON.parse(localStorage.getItem('plans')) || {};
+        let db_notes = JSON.parse(localStorage.getItem('notes')) || [];
+        let db_quiz = JSON.parse(localStorage.getItem('quizzes')) || [];
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyD4NiB_bmb-ThaStulbrhnmIzFtzYJEipo",
-            authDomain: "myplanner-3dd06.firebaseapp.com",
-            projectId: "myplanner-3dd06",
-            storageBucket: "myplanner-3dd06.firebasestorage.app",
-            messagingSenderId: "903533345258",
-            appId: "1:903533345258:web:23c3a5e41e0e4261ae9a93",
-            measurementId: "G-QW2PZLG4EH"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // --- 전역 데이터 저장소 ---
-        window.db_plans = {};
-        window.db_notes = [];
-        window.db_quiz = [];
-
-        // --- 클라우드 데이터 로드 ---
-        async function loadAllData() {
-            try {
-                const planSnap = await getDoc(doc(db, "data", "plans"));
-                if (planSnap.exists()) window.db_plans = planSnap.data();
-
-                const noteSnap = await getDocs(collection(db, "notes"));
-                window.db_notes = noteSnap.docs.map(d => d.data());
-
-                const quizSnap = await getDocs(collection(db, "quizzes"));
-                window.db_quiz = quizSnap.docs.map(d => d.data());
-
-                initCal();
-                renderNotes();
-                renderQuizzes();
-            } catch(e) { console.error("데이터 로드 실패:", e); }
-        }
-
-        // --- 전역 함수 노출 ---
-        window.showPage = (id) => {
+        function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             if(id === 'planner') initCal();
             if(id === 'notes') renderNotes();
             if(id === 'quiz') renderQuizzes();
-        };
+        }
 
-        window.toggleSub = (parent, type) => {
+        function toggleSub(parent, type) {
             document.getElementById(parent + '-list-page').style.display = type === 'list' ? 'block' : 'none';
             document.getElementById(parent + '-new-page').style.display = type === 'new' ? 'block' : 'none';
             if(parent === 'quiz') document.getElementById('quiz-solve-page').style.display = 'none';
+            
+            // 탭 활성화 클래스 처리
             document.getElementById('tab-' + parent + '-list').classList.toggle('active', type === 'list');
             document.getElementById('tab-' + parent + '-new').classList.toggle('active', type === 'new');
+            
             if(type === 'new' && parent === 'notes' && !document.getElementById('edit-note-id').value) resetNoteForm();
-        };
+        }
 
         // --- 플래너 ---
         let viewDate = new Date();
-        window.selKey = null;
-        window.changeMonth = (v) => { viewDate.setMonth(viewDate.getMonth() + v); initCal(); };
-        window.initCal = () => {
+        let selKey = null;
+        function changeMonth(v) { viewDate.setMonth(viewDate.getMonth() + v); initCal(); }
+        function initCal() {
             const grid = document.getElementById('calendar-grid');
-            grid.innerHTML = '<div class="calendar-day-head">일</div><div class="calendar-day-head">월</div><div class="calendar-day-head">화</div><div class="calendar-day-head">수</div><div class="calendar-day-head">목</div><div class="calendar-day-head">금</div><div class="calendar-day-head">토</div>';
+            document.querySelectorAll('.calendar-day, .calendar-day-empty').forEach(e => e.remove());
             const year = viewDate.getFullYear(), month = viewDate.getMonth();
             document.getElementById('calendar-month-year').innerText = `${year}년 ${month + 1}월`;
             const first = new Date(year, month, 1).getDay(), last = new Date(year, month + 1, 0).getDate();
@@ -234,73 +202,90 @@
                 const key = `${year}-${month+1}-${d}`;
                 day.className = 'calendar-day';
                 day.innerText = d;
-                if(window.db_plans[key]) day.classList.add('has-content');
+                if(db_plans[key]) day.classList.add('has-content');
                 if(new Date().toDateString() === new Date(year, month, d).toDateString()) day.classList.add('today');
                 day.onclick = () => {
                     const area = document.getElementById('plan-input-area');
-                    if(window.selKey === key) area.style.display = area.style.display==='none'?'block':'none';
+                    if(selKey === key) area.style.display = area.style.display==='none'?'block':'none';
                     else {
                         document.querySelectorAll('.calendar-day').forEach(el=>el.classList.remove('selected'));
-                        day.classList.add('selected'); window.selKey = key; area.style.display = 'block';
+                        day.classList.add('selected'); selKey = key; area.style.display = 'block';
                     }
                     document.getElementById('selected-date-label').innerText = `${month+1}월 ${d}일 계획`;
-                    document.getElementById('day-plan').value = window.db_plans[key] || "";
+                    document.getElementById('day-plan').value = db_plans[key] || "";
                 };
                 grid.appendChild(day);
             }
-        };
+        }
+        function savePlan() {
+            db_plans[selKey] = document.getElementById('day-plan').value;
+            localStorage.setItem('plans', JSON.stringify(db_plans));
+            alert("저장되었습니다."); initCal();
+        }
 
-        window.savePlan = async () => {
-            window.db_plans[window.selKey] = document.getElementById('day-plan').value;
-            await setDoc(doc(db, "data", "plans"), window.db_plans);
-            alert("서버 저장 완료"); initCal();
-        };
-
-        // --- 노트 ---
-        window.resetNoteForm = () => {
+        // --- 노트 로직 ---
+        function resetNoteForm() {
             document.getElementById('edit-note-id').value = "";
             document.getElementById('n-title').value = "";
             document.getElementById('n-key').value = "";
             document.getElementById('n-con').value = "";
             document.getElementById('curr-chars').innerText = "0";
             document.getElementById('note-save-btn').innerText = "노트 저장";
-        };
+        }
 
-        window.saveNote = async () => {
-            const id = document.getElementById('edit-note-id').value || Date.now().toString();
+        function saveNote() {
+            const id = document.getElementById('edit-note-id').value;
             const noteData = {
-                id: id,
+                id: id ? Number(id) : Date.now(),
                 cat: document.getElementById('n-cat').value,
                 title: document.getElementById('n-title').value,
                 key: document.getElementById('n-key').value,
                 con: document.getElementById('n-con').value
             };
-            await setDoc(doc(db, "notes", id), noteData);
-            alert("노트 저장 완료");
-            loadAllData();
-            window.toggleSub('notes', 'list');
-        };
 
-        window.renderNotes = () => {
+            if(id) {
+                const index = db_notes.findIndex(n => n.id === Number(id));
+                db_notes[index] = noteData;
+            } else {
+                db_notes.push(noteData);
+            }
+
+            localStorage.setItem('notes', JSON.stringify(db_notes));
+            alert("저장되었습니다.");
+            resetNoteForm();
+            toggleSub('notes', 'list');
+            renderNotes();
+        }
+
+        function renderNotes() {
             const listArea = document.getElementById('notes-list-page');
-            listArea.innerHTML = window.db_notes.length ? "" : "<p>노트가 없습니다.</p>";
-            window.db_notes.forEach(n => {
+            listArea.innerHTML = db_notes.length ? "" : "<p>노트가 없습니다.</p>";
+            db_notes.forEach(n => {
                 const card = document.createElement('div');
                 card.className = 'note-card';
-                card.innerHTML = `<strong>[${n.cat}] ${n.title}</strong><br><small>${n.key}</small><div id="con-${n.id}" class="note-content-view">${n.con}</div><div style="margin-top:10px;"><button class="btn-small" onclick="toggleNote('${n.id}', this)">보기</button><button class="btn-small btn-edit" onclick="editNote('${n.id}')">수정</button><button class="btn-small btn-del" onclick="deleteItem('notes', '${n.id}')">삭제</button></div>`;
+                card.innerHTML = `
+                    <strong>[${n.cat}] ${n.title}</strong><br>
+                    <small>키워드: ${n.key}</small>
+                    <div id="con-${n.id}" class="note-content-view">${n.con}</div>
+                    <div style="margin-top:10px;">
+                        <button class="btn-small" onclick="toggleNote(${n.id}, this)">내용 보기</button>
+                        <button class="btn-small btn-edit" onclick="editNote(${n.id})">수정</button>
+                        <button class="btn-small btn-del" onclick="deleteItem('notes', ${n.id})">삭제</button>
+                    </div>
+                `;
                 listArea.appendChild(card);
             });
-        };
+        }
 
-        window.toggleNote = (id, btn) => {
+        function toggleNote(id, btn) {
             const con = document.getElementById('con-' + id);
             const isHidden = con.style.display === 'none' || con.style.display === '';
             con.style.display = isHidden ? 'block' : 'none';
-            btn.innerText = isHidden ? '닫기' : '보기';
-        };
+            btn.innerText = isHidden ? '내용 닫기' : '내용 보기';
+        }
 
-        window.editNote = (id) => {
-            const n = window.db_notes.find(note => note.id == id);
+        function editNote(id) {
+            const n = db_notes.find(note => note.id === id);
             document.getElementById('edit-note-id').value = n.id;
             document.getElementById('n-cat').value = n.cat;
             document.getElementById('n-title').value = n.title;
@@ -308,57 +293,49 @@
             document.getElementById('n-con').value = n.con;
             document.getElementById('curr-chars').innerText = n.con.length;
             document.getElementById('note-save-btn').innerText = "수정 완료";
-            window.toggleSub('notes', 'new');
-        };
+            toggleSub('notes', 'new');
+        }
 
-        // --- 퀴즈 ---
-        window.saveQuiz = async () => {
-            const id = Date.now().toString();
-            const q = { id: id, title: document.getElementById('q-set-title').value, text: document.getElementById('q-text').value, opts: [document.getElementById('q-o1').value, document.getElementById('q-o2').value, document.getElementById('q-o3').value, document.getElementById('q-o4').value, document.getElementById('q-o5').value], ans: document.getElementById('q-ans').value };
-            await setDoc(doc(db, "quizzes", id), q);
-            alert("퀴즈 저장 완료");
-            loadAllData();
-            window.toggleSub('quiz', 'list');
-        };
-
-        window.renderQuizzes = () => {
+        // --- 퀴즈 로직 ---
+        function saveQuiz() {
+            const q = { id: Date.now(), title: document.getElementById('q-set-title').value, text: document.getElementById('q-text').value, opts: [document.getElementById('q-o1').value, document.getElementById('q-o2').value, document.getElementById('q-o3').value, document.getElementById('q-o4').value, document.getElementById('q-o5').value], ans: document.getElementById('q-ans').value };
+            db_quiz.push(q); localStorage.setItem('quizzes', JSON.stringify(db_quiz));
+            alert("퀴즈 저장됨"); toggleSub('quiz', 'list'); renderQuizzes();
+        }
+        function renderQuizzes() {
             const list = document.getElementById('quiz-list-page');
-            list.innerHTML = window.db_quiz.length ? "" : "<p>퀴즈가 없습니다.</p>";
-            window.db_quiz.forEach(q => {
+            list.innerHTML = db_quiz.length ? "" : "저장된 퀴즈가 없습니다.";
+            db_quiz.forEach(q => {
                 const item = document.createElement('div');
                 item.className = 'note-card';
-                item.innerHTML = `<strong>${q.title}</strong><p>${q.text}</p><button class="btn-small btn-edit" onclick="startQuiz('${q.id}')">풀기</button><button class="btn-small btn-del" onclick="deleteItem('quiz', '${q.id}')">삭제</button>`;
+                item.innerHTML = `<strong>${q.title}</strong><p>${q.text}</p><button class="btn-small btn-edit" onclick="startQuiz(${q.id})">풀기</button><button class="btn-small btn-del" onclick="deleteItem('quiz', ${q.id})">삭제</button>`;
                 list.appendChild(item);
             });
-        };
-
-        window.startQuiz = (id) => {
-            const q = window.db_quiz.find(i => i.id == id);
+        }
+        function startQuiz(id) {
+            const q = db_quiz.find(i => i.id === id);
             const area = document.getElementById('quiz-solve-page');
             document.getElementById('quiz-list-page').style.display = 'none';
             area.style.display = 'block';
-            area.innerHTML = `<h3>${q.title}</h3><p>${q.text}</p>` + q.opts.map((o, i) => `<button onclick="checkAns('${q.id}', ${i+1})" style="background:#fff; color:#333; border:1px solid #ddd; margin-bottom:5px; text-align:left; width:100%; padding:10px;">${i+1}. ${o}</button>`).join('') + `<button onclick="window.toggleSub('quiz','list')" style="background:#636e72;">취소</button>`;
-        };
-
-        window.checkAns = (id, user) => {
-            const q = window.db_quiz.find(i => i.id == id);
+            area.innerHTML = `<h3>${q.title}</h3><p>${q.text}</p>` + q.opts.map((o, i) => `<button onclick="checkAns(${q.id}, ${i+1})" style="background:#fff; color:#333; border:1px solid #ddd; margin-bottom:5px; text-align:left; width:100%; padding:10px;">${i+1}. ${o}</button>`).join('') + `<button onclick="toggleSub('quiz','list')" style="background:#636e72;">취소</button>`;
+        }
+        function checkAns(id, user) {
+            const q = db_quiz.find(i => i.id === id);
             if(user == q.ans) alert("정답입니다! 🎉");
             else alert(`틀렸습니다. 정답은 ${q.ans}번입니다.`);
-            window.toggleSub('quiz', 'list');
-        };
+            toggleSub('quiz', 'list');
+        }
 
-        window.deleteItem = async (type, id) => {
+        function deleteItem(type, id) {
             if(!confirm("삭제하시겠습니까?")) return;
-            if(type==='notes') await deleteDoc(doc(db, "notes", id));
-            else await deleteDoc(doc(db, "quizzes", id));
-            alert("삭제 완료");
-            loadAllData();
-        };
+            if(type==='notes') { db_notes = db_notes.filter(i=>i.id!==id); localStorage.setItem('notes', JSON.stringify(db_notes)); renderNotes(); }
+            else { db_quiz = db_quiz.filter(i=>i.id!==id); localStorage.setItem('quizzes', JSON.stringify(db_quiz)); renderQuizzes(); }
+        }
 
-        // --- 타이머 (로컬 로직 유지) ---
+        // --- 타이머 ---
         let timerInterval;
         let isRunning = false;
-        window.toggleTimer = () => {
+        function toggleTimer() {
             const btn = document.getElementById('timer-btn');
             if (!isRunning) {
                 let h = parseInt(document.getElementById('timer-hour').value) || 0;
@@ -367,15 +344,17 @@
                 if (totalSec <= 0) return;
                 isRunning = true; btn.innerText = "정지";
                 timerInterval = setInterval(() => {
-                    totalSec--;
-                    const hr = Math.floor(totalSec / 3600), min = Math.floor((totalSec % 3600) / 60), sc = totalSec % 60;
-                    document.getElementById('timer-display').innerText = `${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;
-                    if (totalSec <= 0) { clearInterval(timerInterval); alert("종료!"); isRunning = false; btn.innerText = "시작"; }
+                    totalSec--; updateTimerUI(totalSec);
+                    if (totalSec <= 0) { clearInterval(timerInterval); alert("시간 종료!"); isRunning = false; btn.innerText = "타이머 시작"; }
                 }, 1000);
-            } else { clearInterval(timerInterval); isRunning = false; btn.innerText = "시작"; }
-        };
+            } else { clearInterval(timerInterval); isRunning = false; btn.innerText = "타이머 시작"; }
+        }
+        function updateTimerUI(sec) {
+            const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+            document.getElementById('timer-display').innerText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
 
-        window.onload = loadAllData;
+        window.onload = () => { initCal(); renderNotes(); renderQuizzes(); };
     </script>
 </body>
 </html>
