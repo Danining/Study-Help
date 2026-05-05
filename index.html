@@ -16,7 +16,7 @@
         }
 
         body { font-family: 'Pretendard', sans-serif; margin: 0; background-color: var(--bg-color); color: var(--text-color); }
-        nav { background-color: var(--primary-color); color: white; padding: 1rem; position: sticky; top: 0; display: flex; overflow-x: auto; gap: 20px; z-index: 1000; display: none; }
+        nav { background-color: var(--primary-color); color: white; padding: 1rem; position: sticky; top: 0; display: flex; overflow-x: auto; gap: 20px; z-index: 1000; }
         nav span { cursor: pointer; font-weight: bold; white-space: nowrap; }
 
         .container { padding: 20px; max-width: 600px; margin: auto; }
@@ -29,7 +29,7 @@
         .sub-tabs button.active { background: var(--primary-color); color: white; }
 
         h2 { border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; margin-bottom: 20px; }
-        .input-group { margin-bottom: 15px; position: relative; }
+        .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
         button { background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; }
@@ -52,30 +52,11 @@
 
         #timer-display { font-size: 3.5rem; text-align: center; margin: 30px 0; font-weight: bold; color: var(--primary-color); font-variant-numeric: tabular-nums; }
         .char-count { text-align: right; font-size: 0.8rem; color: #888; margin-top: 5px; }
-
-        .pass-toggle { position: absolute; right: 10px; top: 38px; background: none; color: #666; width: auto; padding: 0; margin: 0; font-size: 1.2rem; border: none; }
-        #auth-page { text-align: center; }
-        #user-info-box { background: #eee; padding: 15px; border-radius: 10px; margin-top: 10px; word-break: break-all; }
     </style>
 </head>
 <body>
 
-    <div id="auth-page" class="container" style="display: block; margin-top: 50px;">
-        <h2>🔐 로그인 / 회원가입</h2>
-        <div class="input-group">
-            <label>이메일</label>
-            <input type="email" id="auth-email" placeholder="example@email.com">
-        </div>
-        <div class="input-group">
-            <label>비밀번호</label>
-            <input type="password" id="auth-password" placeholder="비밀번호 입력">
-            <button type="button" class="pass-toggle" id="pass-toggle-btn" onclick="togglePasswordView()">👁️</button>
-        </div>
-        <button onclick="window.handleAuth('login')">로그인</button>
-        <button style="background-color: #a29bfe;" onclick="window.handleAuth('signup')">회원가입</button>
-    </div>
-
-    <nav id="main-nav">
+    <nav>
         <span onclick="showPage('planner')">플래너</span>
         <span onclick="showPage('notes')">노트</span>
         <span onclick="showPage('quiz')">퀴즈</span>
@@ -83,7 +64,7 @@
         <span onclick="showPage('settings')">설정</span>
     </nav>
 
-    <div class="container" id="main-app" style="display: none;">
+    <div class="container">
         <section id="planner" class="page active">
             <h2>📅 스터디 플래너 (Cloud)</h2>
             <div class="calendar-container">
@@ -175,19 +156,13 @@
 
         <section id="settings" class="page">
             <h2>⚙️ 설정</h2>
-            <div id="user-info-box">
-                <p><strong>내 계정 정보</strong></p>
-                <p>이메일: <span id="set-email">-</span></p>
-                <p>비밀번호: <span id="set-pass">-</span></p>
-            </div>
-            <button style="background-color: #ff7675;" onclick="window.handleLogout()">로그아웃</button>
+            <p>데이터가 클라우드에 자동으로 저장됩니다.</p>
         </section>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD4NiB_bmb-ThaStulbrhnmIzFtzYJEipo",
@@ -201,72 +176,31 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const auth = getAuth(app);
 
+        // --- 전역 데이터 저장소 ---
         window.db_plans = {};
         window.db_notes = [];
         window.db_quiz = [];
-        let currentUser = null;
 
-        window.togglePasswordView = () => {
-            const passInput = document.getElementById('auth-password');
-            const btn = document.getElementById('pass-toggle-btn');
-            if (passInput.type === "password") {
-                passInput.type = "text";
-                btn.innerText = "🔐";
-            } else {
-                passInput.type = "password";
-                btn.innerText = "👁️";
-            }
-        };
-
-        window.handleAuth = async (type) => {
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-            if(!email || !password) { alert("이메일과 비밀번호를 입력해주세요."); return; }
+        // --- 클라우드 데이터 로드 ---
+        async function loadAllData() {
             try {
-                if(type === 'signup') {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    alert("회원가입이 완료되었습니다!");
-                } else {
-                    await signInWithEmailAndPassword(auth, email, password);
-                }
-            } catch (error) {
-                alert("저장된 정보가 확인 안되어 로그인에 실패했습니다.");
-                console.error(error);
-            }
-        };
+                const planSnap = await getDoc(doc(db, "data", "plans"));
+                if (planSnap.exists()) window.db_plans = planSnap.data();
 
-        window.handleLogout = () => { signOut(auth).then(() => location.reload()); };
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                document.getElementById('auth-page').style.display = 'none';
-                document.getElementById('main-nav').style.display = 'flex';
-                document.getElementById('main-app').style.display = 'block';
-                document.getElementById('set-email').innerText = user.email;
-                document.getElementById('set-pass').innerText = document.getElementById('auth-password').value || "****";
-                loadAllData(user.uid);
-            } else {
-                document.getElementById('auth-page').style.display = 'block';
-                document.getElementById('main-nav').style.display = 'none';
-                document.getElementById('main-app').style.display = 'none';
-            }
-        });
-
-        async function loadAllData(uid) {
-            try {
-                const planSnap = await getDoc(doc(db, "users", uid, "data", "plans"));
-                window.db_plans = planSnap.exists() ? planSnap.data() : {};
-                const noteSnap = await getDocs(collection(db, "users", uid, "notes"));
+                const noteSnap = await getDocs(collection(db, "notes"));
                 window.db_notes = noteSnap.docs.map(d => d.data());
-                const quizSnap = await getDocs(collection(db, "users", uid, "quizzes"));
+
+                const quizSnap = await getDocs(collection(db, "quizzes"));
                 window.db_quiz = quizSnap.docs.map(d => d.data());
-                initCal(); renderNotes(); renderQuizzes();
+
+                initCal();
+                renderNotes();
+                renderQuizzes();
             } catch(e) { console.error("데이터 로드 실패:", e); }
         }
 
+        // --- 전역 함수 노출 ---
         window.showPage = (id) => {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(id).classList.add('active');
@@ -284,6 +218,7 @@
             if(type === 'new' && parent === 'notes' && !document.getElementById('edit-note-id').value) resetNoteForm();
         };
 
+        // --- 플래너 ---
         let viewDate = new Date();
         window.selKey = null;
         window.changeMonth = (v) => { viewDate.setMonth(viewDate.getMonth() + v); initCal(); };
@@ -316,12 +251,12 @@
         };
 
         window.savePlan = async () => {
-            if(!currentUser) return;
             window.db_plans[window.selKey] = document.getElementById('day-plan').value;
-            await setDoc(doc(db, "users", currentUser.uid, "data", "plans"), window.db_plans);
+            await setDoc(doc(db, "data", "plans"), window.db_plans);
             alert("서버 저장 완료"); initCal();
         };
 
+        // --- 노트 ---
         window.resetNoteForm = () => {
             document.getElementById('edit-note-id').value = "";
             document.getElementById('n-title').value = "";
@@ -332,18 +267,26 @@
         };
 
         window.saveNote = async () => {
-            if(!currentUser) return;
             const id = document.getElementById('edit-note-id').value || Date.now().toString();
-            const noteData = { id, cat: document.getElementById('n-cat').value, title: document.getElementById('n-title').value, key: document.getElementById('n-key').value, con: document.getElementById('n-con').value };
-            await setDoc(doc(db, "users", currentUser.uid, "notes", id), noteData);
-            alert("노트 저장 완료"); loadAllData(currentUser.uid); window.toggleSub('notes', 'list');
+            const noteData = {
+                id: id,
+                cat: document.getElementById('n-cat').value,
+                title: document.getElementById('n-title').value,
+                key: document.getElementById('n-key').value,
+                con: document.getElementById('n-con').value
+            };
+            await setDoc(doc(db, "notes", id), noteData);
+            alert("노트 저장 완료");
+            loadAllData();
+            window.toggleSub('notes', 'list');
         };
 
         window.renderNotes = () => {
             const listArea = document.getElementById('notes-list-page');
             listArea.innerHTML = window.db_notes.length ? "" : "<p>노트가 없습니다.</p>";
             window.db_notes.forEach(n => {
-                const card = document.createElement('div'); card.className = 'note-card';
+                const card = document.createElement('div');
+                card.className = 'note-card';
                 card.innerHTML = `<strong>[${n.cat}] ${n.title}</strong><br><small>${n.key}</small><div id="con-${n.id}" class="note-content-view">${n.con}</div><div style="margin-top:10px;"><button class="btn-small" onclick="toggleNote('${n.id}', this)">보기</button><button class="btn-small btn-edit" onclick="editNote('${n.id}')">수정</button><button class="btn-small btn-del" onclick="deleteItem('notes', '${n.id}')">삭제</button></div>`;
                 listArea.appendChild(card);
             });
@@ -368,19 +311,22 @@
             window.toggleSub('notes', 'new');
         };
 
+        // --- 퀴즈 ---
         window.saveQuiz = async () => {
-            if(!currentUser) return;
             const id = Date.now().toString();
-            const q = { id, title: document.getElementById('q-set-title').value, text: document.getElementById('q-text').value, opts: [document.getElementById('q-o1').value, document.getElementById('q-o2').value, document.getElementById('q-o3').value, document.getElementById('q-o4').value, document.getElementById('q-o5').value], ans: document.getElementById('q-ans').value };
-            await setDoc(doc(db, "users", currentUser.uid, "quizzes", id), q);
-            alert("퀴즈 저장 완료"); loadAllData(currentUser.uid); window.toggleSub('quiz', 'list');
+            const q = { id: id, title: document.getElementById('q-set-title').value, text: document.getElementById('q-text').value, opts: [document.getElementById('q-o1').value, document.getElementById('q-o2').value, document.getElementById('q-o3').value, document.getElementById('q-o4').value, document.getElementById('q-o5').value], ans: document.getElementById('q-ans').value };
+            await setDoc(doc(db, "quizzes", id), q);
+            alert("퀴즈 저장 완료");
+            loadAllData();
+            window.toggleSub('quiz', 'list');
         };
 
         window.renderQuizzes = () => {
             const list = document.getElementById('quiz-list-page');
             list.innerHTML = window.db_quiz.length ? "" : "<p>퀴즈가 없습니다.</p>";
             window.db_quiz.forEach(q => {
-                const item = document.createElement('div'); item.className = 'note-card';
+                const item = document.createElement('div');
+                item.className = 'note-card';
                 item.innerHTML = `<strong>${q.title}</strong><p>${q.text}</p><button class="btn-small btn-edit" onclick="startQuiz('${q.id}')">풀기</button><button class="btn-small btn-del" onclick="deleteItem('quiz', '${q.id}')">삭제</button>`;
                 list.appendChild(item);
             });
@@ -389,40 +335,47 @@
         window.startQuiz = (id) => {
             const q = window.db_quiz.find(i => i.id == id);
             const area = document.getElementById('quiz-solve-page');
-            document.getElementById('quiz-list-page').style.display = 'none'; area.style.display = 'block';
+            document.getElementById('quiz-list-page').style.display = 'none';
+            area.style.display = 'block';
             area.innerHTML = `<h3>${q.title}</h3><p>${q.text}</p>` + q.opts.map((o, i) => `<button onclick="checkAns('${q.id}', ${i+1})" style="background:#fff; color:#333; border:1px solid #ddd; margin-bottom:5px; text-align:left; width:100%; padding:10px;">${i+1}. ${o}</button>`).join('') + `<button onclick="window.toggleSub('quiz','list')" style="background:#636e72;">취소</button>`;
         };
 
         window.checkAns = (id, user) => {
             const q = window.db_quiz.find(i => i.id == id);
-            if(user == q.ans) alert("정답입니다! 🎉"); else alert(`틀렸습니다. 정답은 ${q.ans}번입니다.`);
+            if(user == q.ans) alert("정답입니다! 🎉");
+            else alert(`틀렸습니다. 정답은 ${q.ans}번입니다.`);
             window.toggleSub('quiz', 'list');
         };
 
         window.deleteItem = async (type, id) => {
-            if(!confirm("삭제하시겠습니까?") || !currentUser) return;
-            if(type==='notes') await deleteDoc(doc(db, "users", currentUser.uid, "notes", id));
-            else await deleteDoc(doc(db, "users", currentUser.uid, "quizzes", id));
-            alert("삭제 완료"); loadAllData(currentUser.uid);
+            if(!confirm("삭제하시겠습니까?")) return;
+            if(type==='notes') await deleteDoc(doc(db, "notes", id));
+            else await deleteDoc(doc(db, "quizzes", id));
+            alert("삭제 완료");
+            loadAllData();
         };
 
-        let tInt; let tRun = false;
+        // --- 타이머 (로컬 로직 유지) ---
+        let timerInterval;
+        let isRunning = false;
         window.toggleTimer = () => {
             const btn = document.getElementById('timer-btn');
-            if (!tRun) {
+            if (!isRunning) {
                 let h = parseInt(document.getElementById('timer-hour').value) || 0;
                 let m = parseInt(document.getElementById('timer-min').value) || 0;
-                let s = (Math.min(h, 2) * 3600) + (m * 60);
-                if (s <= 0) return;
-                tRun = true; btn.innerText = "정지";
-                tInt = setInterval(() => {
-                    s--; 
-                    const hr = Math.floor(s/3600), mn = Math.floor((s%3600)/60), sc = s%60;
-                    document.getElementById('timer-display').innerText = `${String(hr).padStart(2,'0')}:${String(mn).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;
-                    if (s <= 0) { clearInterval(tInt); alert("종료!"); tRun = false; btn.innerText = "시작"; }
+                let totalSec = (Math.min(h, 2) * 3600) + (m * 60);
+                if (totalSec <= 0) return;
+                isRunning = true; btn.innerText = "정지";
+                timerInterval = setInterval(() => {
+                    totalSec--;
+                    const hr = Math.floor(totalSec / 3600), min = Math.floor((totalSec % 3600) / 60), sc = totalSec % 60;
+                    document.getElementById('timer-display').innerText = `${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;
+                    if (totalSec <= 0) { clearInterval(timerInterval); alert("종료!"); isRunning = false; btn.innerText = "시작"; }
                 }, 1000);
-            } else { clearInterval(tInt); tRun = false; btn.innerText = "시작"; }
+            } else { clearInterval(timerInterval); isRunning = false; btn.innerText = "시작"; }
         };
+
+        window.onload = loadAllData;
     </script>
 </body>
 </html>
