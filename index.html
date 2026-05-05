@@ -16,7 +16,7 @@
         }
 
         body { font-family: 'Pretendard', sans-serif; margin: 0; background-color: var(--bg-color); color: var(--text-color); }
-        nav { background-color: var(--primary-color); color: white; padding: 1rem; position: sticky; top: 0; display: flex; overflow-x: auto; gap: 20px; z-index: 1000; display: none; } /* 로그인 전 숨김 */
+        nav { background-color: var(--primary-color); color: white; padding: 1rem; position: sticky; top: 0; display: flex; overflow-x: auto; gap: 20px; z-index: 1000; display: none; }
         nav span { cursor: pointer; font-weight: bold; white-space: nowrap; }
 
         .container { padding: 20px; max-width: 600px; margin: auto; }
@@ -53,7 +53,6 @@
         #timer-display { font-size: 3.5rem; text-align: center; margin: 30px 0; font-weight: bold; color: var(--primary-color); font-variant-numeric: tabular-nums; }
         .char-count { text-align: right; font-size: 0.8rem; color: #888; margin-top: 5px; }
 
-        /* 로그인 관련 스타일 */
         .pass-toggle { position: absolute; right: 10px; top: 38px; background: none; color: #666; width: auto; padding: 0; margin: 0; font-size: 1.2rem; border: none; }
         #auth-page { text-align: center; }
         #user-info-box { background: #eee; padding: 15px; border-radius: 10px; margin-top: 10px; word-break: break-all; }
@@ -285,7 +284,6 @@
             if(type === 'new' && parent === 'notes' && !document.getElementById('edit-note-id').value) resetNoteForm();
         };
 
-        // 플래너 로직
         let viewDate = new Date();
         window.selKey = null;
         window.changeMonth = (v) => { viewDate.setMonth(viewDate.getMonth() + v); initCal(); };
@@ -318,7 +316,7 @@
         };
 
         window.savePlan = async () => {
-            if(!currentUser || !window.selKey) return;
+            if(!currentUser) return;
             window.db_plans[window.selKey] = document.getElementById('day-plan').value;
             await setDoc(doc(db, "users", currentUser.uid, "data", "plans"), window.db_plans);
             alert("서버 저장 완료"); initCal();
@@ -408,7 +406,6 @@
             alert("삭제 완료"); loadAllData(currentUser.uid);
         };
 
-        // 타이머 로직
         let tInt; let tRun = false;
         window.toggleTimer = () => {
             const btn = document.getElementById('timer-btn');
