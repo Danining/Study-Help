@@ -1,361 +1,3138 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Study Web App</title>
-    <style>
-        :root {
-            --primary-color: #6c5ce7;
-            --bg-color: #f4f4f9;
-            --card-bg: #ffffff;
-            --text-color: #2d3436;
-            --today-color: #fff176;
-            --select-color: #81c784;
-            --has-content: #74b9ff;
-        }
+<!-- [이식 코드 1] 파이어베이스 라이브러리 및 설정 주입 -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-        body { font-family: 'Pretendard', sans-serif; margin: 0; background-color: var(--bg-color); color: var(--text-color); }
-        nav { background-color: var(--primary-color); color: white; padding: 1rem; position: sticky; top: 0; display: flex; overflow-x: auto; gap: 20px; z-index: 1000; }
-        nav span { cursor: pointer; font-weight: bold; white-space: nowrap; }
+<script>
+  // 질문자님의 실제 파이어베이스 키 설정
+  const firebaseConfig = {
+    apiKey: "AIzaSyBu01v96jNJmZwNLz8QWghFLNAWEuod3Pk",
+    authDomain: "://firebaseapp.com",
+    projectId: "productivity-app-b3c8f",
+    storageBucket: "productivity-app-b3c8f.firebasestorage.app",
+    messagingSenderId: "373664793129",
+    appId: "1:373664793129:web:197fc94e3857e187c71238",
+    measurementId: "G-ZY5Q930988"
+  };
 
-        .container { padding: 20px; max-width: 600px; margin: auto; }
-        .page { display: none; animation: fadeIn 0.3s; }
-        .page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  // 파이어베이스 시스템 시작
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+</script>
 
-        .sub-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-        .sub-tabs button { background: #dfe6e9; color: #636e72; padding: 8px; font-size: 0.8rem; margin: 0; border-radius: 5px; flex: 1; }
-        .sub-tabs button.active { background: var(--primary-color); color: white; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>종합 공부 관리 시스템</title>
+  <style>
+    :root {
+      --bg-color: #f4f6f9;
+      --card-bg: #ffffff;
+      --primary: #2c3e50;
+      --accent: #3498db;
+      --accent-hover: #2980b9;
+      --text: #333333;
+      --text-muted: #7f8c8d;
+      --border: #e2e8f0;
+      --success: #2ecc71;
+      --danger: #e74c3c;
+      --warning: #f1c40f;
+      --radius: 12px;
+      --shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
 
-        h2 { border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; margin-bottom: 20px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
-        button { background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; }
-        
-        .note-card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; border-left: 5px solid var(--primary-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .note-content-view { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd; white-space: pre-wrap; }
-        .btn-small { padding: 5px 10px; font-size: 0.8rem; width: auto; margin-right: 5px; }
-        .btn-edit { background: #00b894; }
-        .btn-del { background: #ff7675; }
+    /* 테마 클래스 정의 */
+    body.theme-navy {
+      --bg-color: #1a1e29;
+      --card-bg: #242b3d;
+      --primary: #e2e8f0;
+      --accent: #00adb5;
+      --accent-hover: #008891;
+      --text: #eceff4;
+      --text-muted: #94a3b8;
+      --border: #333d54;
+    }
 
-        /* 달력 */
-        .calendar-container { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-weight: bold; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-        .calendar-day-head { font-size: 0.75rem; color: #999; text-align: center; padding-bottom: 5px; }
-        .calendar-day { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; border: 1px solid #f0f0f0; background: #fff; font-size: 0.9rem; }
-        .today { background-color: var(--today-color) !important; font-weight: bold; border: 2px solid #fbc02d; }
-        .selected { background-color: var(--select-color) !important; color: white; border: none; }
-        .has-content { border: 2px solid var(--has-content); color: var(--has-content); font-weight: bold; }
-        .plan-input-area { margin-top: 20px; background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: none; }
+    body.theme-light {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --primary: #0f172a;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
 
-        #timer-display { font-size: 3.5rem; text-align: center; margin: 30px 0; font-weight: bold; color: var(--primary-color); font-variant-numeric: tabular-nums; }
-        .char-count { text-align: right; font-size: 0.8rem; color: #888; margin-top: 5px; }
-    </style>
+    body.theme-red-orange {
+      --bg-color: #fff5f5;
+      --card-bg: #ffffff;
+      --primary: #9b2c2c;
+      --accent: #dd6b20;
+      --accent-hover: #c05621;
+      --text: #2d3748;
+      --text-muted: #a0aec0;
+      --border: #feebc8;
+    }
+
+    body.theme-yellow-green {
+      --bg-color: #f0fff4;
+      --card-bg: #ffffff;
+      --primary: #22543d;
+      --accent: #d69e2e;
+      --accent-hover: #b7791f;
+      --text: #1a202c;
+      --text-muted: #718096;
+      --border: #c6f6d5;
+    }
+
+    body.theme-blue-indigo {
+      --bg-color: #ebf8ff;
+      --card-bg: #ffffff;
+      --primary: #1a365d;
+      --accent: #3182ce;
+      --accent-hover: #2b6cb0;
+      --text: #2d3748;
+      --text-muted: #718096;
+      --border: #bee3f8;
+    }
+
+    body.theme-purple-white {
+      --bg-color: #faf5ff;
+      --card-bg: #ffffff;
+      --primary: #553c9a;
+      --accent: #805ad5;
+      --accent-hover: #6b46c1;
+      --text: #2d3748;
+      --text-muted: #a0aec0;
+      --border: #e9d8fd;
+    }
+
+    body.theme-purple-black {
+      --bg-color: #12091f;
+      --card-bg: #1d1133;
+      --primary: #d6bcfa;
+      --accent: #9f7aea;
+      --accent-hover: #805ad5;
+      --text: #f7fafc;
+      --text-muted: #a0aec0;
+      --border: #322552;
+    }
+
+    body.theme-purple-black header {
+      background-color: #0b0514;
+      color: var(--primary);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* 헤더 및 실시간 시계 */
+    header {
+      background-color: var(--primary);
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    body.theme-navy header {
+      background-color: #11141d;
+      color: var(--primary);
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .header-title h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    /* 동기부여 문구 스타일 */
+    .motto-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .motto-text {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.9);
+      font-style: italic;
+      max-width: 250px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .motto-input {
+      font-size: 0.85rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--accent);
+      outline: none;
+      background: var(--card-bg);
+      color: var(--text);
+      width: 220px;
+    }
+    .btn-motto {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 2px 4px;
+    }
+    .btn-motto:hover {
+      color: white;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .year-progress-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 180px;
+    }
+
+    .year-progress-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.8);
+      font-weight: 600;
+    }
+
+    .date-display {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255,255,255,0.08);
+      padding: 8px 14px;
+      border-radius: 8px;
+    }
+
+    .digital-clock {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: 'Courier New', Courier, monospace;
+      background: rgba(255,255,255,0.1);
+      padding: 8px 16px;
+      border-radius: 8px;
+      letter-spacing: 1px;
+    }
+
+    /* 탭 네비게이션 */
+    nav {
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 12px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      background-color: var(--bg-color);
+      color: var(--primary);
+    }
+
+    .tab-btn.active {
+      background-color: var(--accent);
+      color: white;
+    }
+
+    /* 메인 컨테이너 및 탭 콘텐츠 */
+    main {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 공통 레이아웃 카드 스타일 */
+    .card {
+      background-color: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 25px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      margin-bottom: 25px;
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--bg-color);
+      padding-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 폼 요소 공통 */
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      background-color: var(--card-bg);
+      color: var(--text);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent);
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
+    }
+
+    /* 버튼 스타일 */
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-primary { background-color: var(--accent); color: white; }
+    .btn-primary:hover { background-color: var(--accent-hover); }
+    .btn-danger { background-color: var(--danger); color: white; }
+    .btn-danger:hover { opacity: 0.9; }
+    .btn-secondary { background-color: #95a5a6; color: white; }
+    .btn-secondary:hover { background-color: #7f8c8d; }
+    .btn-success { background-color: var(--success); color: white; }
+    .btn-success:hover { opacity: 0.9; }
+    .btn-warning { background-color: var(--warning); color: #333; }
+    .btn-warning:hover { opacity: 0.9; }
+    .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+
+    /* 게이지/프로그레스 바 */
+    .progress-container {
+      width: 100%;
+      background-color: var(--bg-color);
+      border-radius: 10px;
+      height: 12px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background-color: var(--accent);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* 1. 노트 기능 (아코디언 적용) */
+    .note-item {
+      background: var(--bg-color);
+      border-left: 4px solid var(--accent);
+      padding: 15px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .note-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      cursor: pointer;
+      user-select: none;
+    }
+    .note-title-group {
+      flex: 1;
+      padding-right: 15px;
+    }
+    .note-item h4 { font-size: 1.1rem; color: var(--primary); margin-bottom: 4px; }
+    .note-item h5 { font-size: 0.9rem; color: var(--accent); margin-bottom: 8px; }
+    .note-item .keywords { font-size: 0.8rem; background: rgba(52,152,219,0.15); color: var(--accent); padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; }
+    .note-content-body {
+      display: none;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+    }
+    .note-item.open .note-content-body { display: block; }
+    .note-item p { font-size: 0.95rem; white-space: pre-wrap; color: var(--text); }
+    .note-item .note-actions { display: flex; gap: 5px; margin-top: 10px; justify-content: flex-end; }
+    .accordion-icon { font-size: 0.8rem; transition: transform 0.2s; color: var(--text-muted); }
+    .note-item.open .accordion-icon { transform: rotate(180deg); }
+
+    /* 2. 디데이 기능 & 시각적 캘린더 */
+    .dday-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .dday-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    .dday-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .dday-title { font-weight: 700; font-size: 1.1rem; color: var(--primary); }
+    .dday-badge { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+    .dday-info { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; }
+
+    /* 시각적 달력 스타일 */
+    .calendar-container {
+      margin-top: 10px;
+    }
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .calendar-header h3 {
+      font-size: 1.1rem;
+      color: var(--primary);
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      text-align: center;
+    }
+    .calendar-day-head {
+      font-weight: bold;
+      padding: 8px 0;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .calendar-day-head:first-child { color: var(--danger); }
+    .calendar-day-head:last-child { color: var(--accent); }
+    .calendar-cell {
+      padding: 8px;
+      min-height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      background: var(--card-bg);
+    }
+    .calendar-cell.other-month {
+      opacity: 0.3;
+    }
+    .calendar-cell.today {
+      border: 2px solid var(--accent);
+      font-weight: bold;
+    }
+    .calendar-event-tag {
+      font-size: 0.7rem;
+      background: var(--accent);
+      color: white;
+      border-radius: 3px;
+      padding: 1px 4px;
+      margin-top: 3px;
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* 3. 목표 및 체크리스트 */
+    .goal-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .goal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .goal-title-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+    .todo-list { list-style: none; margin-top: 10px; }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .todo-item:last-child { border-bottom: none; }
+    .todo-left { display: flex; align-items: center; gap: 8px; }
+    .todo-item.completed span { text-decoration: line-through; color: var(--text-muted); }
+
+    /* 4. 듀얼 타이머 */
+    .timer-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+    }
+    .timer-box {
+      text-align: center;
+      padding: 30px;
+      background: var(--bg-color);
+      border-radius: var(--radius);
+    }
+    .timer-display {
+      font-size: 3.5rem;
+      font-weight: 800;
+      font-family: 'Courier New', Courier, monospace;
+      color: var(--primary);
+      margin: 20px 0;
+    }
+    .timer-controls { display: flex; justify-content: center; gap: 10px; }
+    .pomo-mode-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    /* 5. 플래시 카드 */
+    .flashcard-wrapper {
+      max-width: 500px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .flashcard-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .flashcard {
+      width: 100%;
+      height: 250px;
+      perspective: 1000px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    .flashcard-grid .flashcard {
+      margin-bottom: 0;
+    }
+    .flashcard-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+    }
+    .flashcard.flipped .flashcard-inner {
+      transform: rotateY(180deg);
+    }
+    .flashcard-front, .flashcard-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      word-break: break-word;
+    }
+    .flashcard-front { color: var(--primary); }
+    .flashcard-back { background-color: var(--bg-color); color: var(--accent); transform: rotateY(180deg); }
+    .card-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
+
+    /* 6. 신규: 단어장 스타일 */
+    .vocab-book-item {
+      background: var(--bg-color);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+    .vocab-book-header {
+      padding: 15px 20px;
+      background: var(--card-bg);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .vocab-book-header h3 {
+      font-size: 1.1rem;
+      color: var(--primary);
+    }
+    .vocab-book-header .subject-tag {
+      font-size: 0.8rem;
+      background: rgba(52, 152, 219, 0.15);
+      color: var(--accent);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-left: 10px;
+    }
+    .vocab-book-body {
+      padding: 20px;
+      display: none;
+    }
+    .vocab-book-item.open .vocab-book-body {
+      display: block;
+    }
+    .word-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    .word-table th, .word-table td {
+      padding: 10px;
+      border: 1px solid var(--border);
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    .word-table th {
+      background-color: var(--card-bg);
+      color: var(--primary);
+    }
+
+    /* 7. 신규: 계산기 스타일 */
+    .calculator-wrapper {
+      max-width: 420px;
+      margin: 0 auto;
+      background: var(--bg-color);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .calc-display {
+      width: 100%;
+      height: 70px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-align: right;
+      padding: 10px 15px;
+      font-size: 1.8rem;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 15px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+    .btn-calc {
+      padding: 15px 0;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .btn-calc:hover {
+      background: var(--bg-color);
+      border-color: var(--accent);
+    }
+    .btn-calc-op {
+      background: rgba(52, 152, 219, 0.15);
+      color: var(--accent);
+    }
+    .btn-calc-fn {
+      background: rgba(46, 204, 113, 0.15);
+      color: var(--success);
+    }
+    .btn-calc-clear {
+      background: rgba(231, 76, 60, 0.15);
+      color: var(--danger);
+    }
+    .btn-calc-eq {
+      background: var(--accent);
+      color: white;
+      grid-column: span 2;
+    }
+    .btn-calc-eq:hover {
+      background: var(--accent-hover);
+    }
+
+    /* 8. 과목별 타이머 */
+    .subject-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      background: var(--card-bg);
+    }
+    .subject-info { flex: 1; margin-right: 20px; }
+    .subject-time { font-family: monospace; font-size: 1.1rem; font-weight: bold; margin-top: 5px; color: var(--primary); }
+    .overtime-text { color: var(--danger); font-size: 0.95rem; font-weight: bold; margin-left: 5px; }
+
+    /* 9. 스톱워치 & 다중 계수기 스타일 */
+    .stopwatch-display {
+      font-size: 3.5rem;
+      font-weight: 800;
+      font-family: 'Courier New', Courier, monospace;
+      color: var(--primary);
+      text-align: center;
+      margin: 15px 0;
+    }
+    .laps-container {
+      max-height: 180px;
+      overflow-y: auto;
+      margin-top: 15px;
+      border-top: 1px dashed var(--border);
+      padding-top: 10px;
+    }
+    .lap-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      font-family: monospace;
+      border-bottom: 1px solid var(--bg-color);
+    }
+    .counter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .counter-card {
+      background: var(--bg-color);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .counter-value {
+      font-size: 2.2rem;
+      font-weight: 800;
+      text-align: center;
+      color: var(--accent);
+      margin: 5px 0;
+    }
+
+    /* 폭죽 Canvas 스타일 */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .flashcard-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .grid-2, .grid-3, .timer-container { grid-template-columns: 1fr; }
+      header { flex-direction: column; gap: 15px; text-align: center; }
+      .header-title { justify-content: center; width: 100%; }
+      .header-right { justify-content: center; width: 100%; }
+      .digital-clock { font-size: 1.3rem; }
+      .flashcard-grid { grid-template-columns: 1fr; }
+      .calc-grid { grid-template-columns: repeat(4, 1fr); }
+      .btn-calc-eq { grid-column: span 1; }
+    }
+  </style>
 </head>
 <body>
 
-    <nav>
-        <span onclick="showPage('planner')">플래너</span>
-        <span onclick="showPage('notes')">노트</span>
-        <span onclick="showPage('quiz')">퀴즈</span>
-        <span onclick="showPage('timer')">타이머</span>
-        <span onclick="showPage('settings')">설정</span>
-    </nav>
-
-    <div class="container">
-        <section id="planner" class="page active">
-            <h2>📅 스터디 플래너</h2>
-            <div class="calendar-container">
-                <div class="calendar-header">
-                    <button onclick="changeMonth(-1)" style="width:40px; margin:0;"><</button>
-                    <span id="calendar-month-year"></span>
-                    <button onclick="changeMonth(1)" style="width:40px; margin:0;">></button>
-                </div>
-                <div class="calendar-grid" id="calendar-grid">
-                    <div class="calendar-day-head">일</div><div class="calendar-day-head">월</div>
-                    <div class="calendar-day-head">화</div><div class="calendar-day-head">수</div>
-                    <div class="calendar-day-head">목</div><div class="calendar-day-head">금</div>
-                    <div class="calendar-day-head">토</div>
-                </div>
-            </div>
-            <div id="plan-input-area" class="plan-input-area">
-                <label id="selected-date-label"></label>
-                <input type="text" id="day-plan" maxlength="20" placeholder="계획 (최대 20자)">
-                <button onclick="savePlan()">저장</button>
-            </div>
-        </section>
-
-        <section id="notes" class="page">
-            <h2>📝 과목별 노트</h2>
-            <div class="sub-tabs">
-                <button id="tab-notes-list" class="active" onclick="toggleSub('notes', 'list')">기존 노트</button>
-                <button id="tab-notes-new" onclick="toggleSub('notes', 'new')">새 노트 작성</button>
-            </div>
-            <div id="notes-list-page"></div>
-            <div id="notes-new-page" style="display:none;">
-                <input type="hidden" id="edit-note-id">
-                <div class="input-group">
-                    <label>과목 카테고리</label>
-                    <select id="n-cat">
-                        <option>국어</option><option>수학</option><option>사회/역사</option>
-                        <option>과학</option><option>영어</option><option>기술·가정</option>
-                        <option>정보</option><option>한문</option><option>기타</option>
-                    </select>
-                </div>
-                <div class="input-group"><input type="text" id="n-title" placeholder="제목"></div>
-                <div class="input-group"><input type="text" id="n-key" placeholder="키워드"></div>
-                <div class="input-group">
-                    <textarea id="n-con" rows="10" maxlength="1200" placeholder="내용 (최대 1200자)" oninput="document.getElementById('curr-chars').innerText = this.value.length"></textarea>
-                    <div class="char-count"><span id="curr-chars">0</span> / 1200</div>
-                </div>
-                <button onclick="saveNote()" id="note-save-btn">노트 저장</button>
-            </div>
-        </section>
-
-        <section id="quiz" class="page">
-            <h2>💡 퀴즈 메이커</h2>
-            <div class="sub-tabs">
-                <button id="tab-quiz-list" class="active" onclick="toggleSub('quiz', 'list')">기존 퀴즈</button>
-                <button id="tab-quiz-new" onclick="toggleSub('quiz', 'new')">새 퀴즈 만들기</button>
-            </div>
-            <div id="quiz-list-page"></div>
-            <div id="quiz-new-page" style="display:none;">
-                <input type="text" id="q-set-title" placeholder="퀴즈 제목" class="input-group">
-                <div class="input-group" style="background:#fff; padding:15px; border-radius:8px;">
-                    <input type="text" id="q-text" placeholder="질문" style="margin-bottom:10px;">
-                    <input type="text" id="q-o1" placeholder="1번 선지" style="margin-bottom:5px;">
-                    <input type="text" id="q-o2" placeholder="2번 선지" style="margin-bottom:5px;">
-                    <input type="text" id="q-o3" placeholder="3번 선지" style="margin-bottom:5px;">
-                    <input type="text" id="q-o4" placeholder="4번 선지" style="margin-bottom:5px;">
-                    <input type="text" id="q-o5" placeholder="5번 선지" style="margin-bottom:5px;">
-                    <label>정답 번호 (1-5)</label>
-                    <input type="number" id="q-ans" min="1" max="5">
-                </div>
-                <button onclick="saveQuiz()">퀴즈 저장</button>
-            </div>
-            <div id="quiz-solve-page" style="display:none;"></div>
-        </section>
-
-        <section id="timer" class="page">
-            <h2>⏳ 스터디 타이머</h2>
-            <div style="display: flex; gap: 10px;">
-                <div style="flex: 1;">
-                    <label>시간 (0-2)</label>
-                    <input type="number" id="timer-hour" min="0" max="2" value="0">
-                </div>
-                <div style="flex: 1;">
-                    <label>분 (0-59)</label>
-                    <input type="number" id="timer-min" min="0" max="59" value="30">
-                </div>
-            </div>
-            <div id="timer-display">00:30:00</div>
-            <button onclick="toggleTimer()" id="timer-btn">타이머 시작</button>
-        </section>
-
-        <section id="settings" class="page">
-            <h2>⚙️ 설정</h2>
-            <p>설정할 항목이 아직 없습니다.</p>
-        </section>
+<!-- [이식 코드 2] 로그인 화면 모달창 (눈 모양 토글 포함) -->
+<div id="login-wall" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#2c3e50; z-index:9999; display:flex; justify-content:center; align-items:center; font-family:sans-serif;">
+  <div style="background:white; padding:40px; border-radius:12px; width:350px; text-align:center; box-shadow:0 8px 24px rgba(0,0,0,0.3);">
+    <h2 style="margin-bottom:24px; color:#2c3e50;">스마트 학습 관리</h2>
+    <input type="email" id="auth-email" placeholder="이메일 주소" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+    <div style="position:relative; margin-bottom:20px;">
+      <input type="password" id="auth-password" placeholder="비밀번호" style="width:100%; padding:12px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+      <span id="toggle-password" style="position:absolute; right:12px; top:12px; cursor:pointer; font-size:18px;">👁️</span>
     </div>
+    <button id="btn-login" style="width:100%; padding:12px; background:#3498db; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer; margin-bottom:8px;">로그인</button>
+    <button id="btn-signup" style="width:100%; padding:12px; background:#2ecc71; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer; margin-bottom:8px;">회원가입</button>
+    <button id="btn-guest" style="width:100%; padding:12px; background:#95a5a6; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">게스트로 시작</button>
+  </div>
+</div>
 
-    <script>
-        let db_plans = JSON.parse(localStorage.getItem('plans')) || {};
-        let db_notes = JSON.parse(localStorage.getItem('notes')) || [];
-        let db_quiz = JSON.parse(localStorage.getItem('quizzes')) || [];
+  <!-- 폭죽 효과용 캔버스 -->
+  <canvas id="confettiCanvas"></canvas>
 
-        function showPage(id) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            if(id === 'planner') initCal();
-            if(id === 'notes') renderNotes();
-            if(id === 'quiz') renderQuizzes();
+  <!-- 헤더 & 대시보드 시계 -->
+  <header>
+    <div class="header-title">
+      <h1>스마트 학습 관리</h1>
+      <div class="motto-container" id="mottoContainer">
+        <span class="motto-text" id="mottoText" title="더블클릭하여 동기부여 문구 수정">오늘도 최선을 다하자!</span>
+        <button class="btn-motto" onclick="enableMottoEdit()" title="문구 수정">✏️</button>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="year-progress-box">
+        <div class="year-progress-labels">
+          <span>올해 지나간 기간</span>
+          <span id="yearProgressText">0%</span>
+        </div>
+        <div class="progress-container" style="height: 8px; margin-top: 0; background: rgba(255,255,255,0.2);">
+          <div class="progress-bar" id="yearProgressBar" style="background-color: var(--accent);"></div>
+        </div>
+      </div>
+      <div class="date-display" id="dateDisplay">0000년 00월 00일</div>
+      <div class="digital-clock" id="digitalClock">오전 00:00:00</div>
+    </div>
+  </header>
+
+  <!-- 탭 메뉴 -->
+  <nav>
+    <button class="tab-btn active" onclick="switchTab(event, 'tab-notes')">4단 노트</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-dday')">디데이 & 진행률</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-goals')">목표 & 체크리스트</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-timer')">듀얼 타이머</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-cards')">플래시카드</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-vocab')">단어장</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-calc')">계산기</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-subjects')">과목별 타이머</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-stopwatch')">스톱워치 & 계수기</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-settings')">설정</button>
+  </nav>
+
+  <main>
+    <!-- 1. 4단 구조 노트 기능 -->
+    <section id="tab-notes" class="tab-content active">
+      <div class="card">
+        <h2 class="card-title" id="noteFormTitle">4단 구조 노트 작성</h2>
+        <form id="noteForm" onsubmit="saveNote(event)">
+          <input type="hidden" id="noteEditIndex" value="">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>제목</label>
+              <input type="text" id="noteTitle" class="form-control" placeholder="노트 제목 입력" required>
+            </div>
+            <div class="form-group">
+              <label>소제목</label>
+              <input type="text" id="noteSubtitle" class="form-control" placeholder="소제목 입력" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>핵심 키워드</label>
+            <input type="text" id="noteKeywords" class="form-control" placeholder="쉼표(,)로 구분하여 입력 (예: 개발, 자바스크립트)" required>
+          </div>
+          <div class="form-group">
+            <label>상세 내용</label>
+            <textarea id="noteContent" class="form-control" placeholder="노트 내용 작성..." required></textarea>
+          </div>
+          <button type="submit" id="noteSubmitBtn" class="btn btn-primary">노트 저장</button>
+          <button type="button" id="noteCancelBtn" class="btn btn-secondary" style="display:none;" onclick="resetNoteForm()">취소</button>
+        </form>
+      </div>
+      <div class="card">
+        <h2 class="card-title">저장된 노트 목록</h2>
+        <div class="form-group" style="margin-bottom: 15px;">
+          <input type="text" id="noteSearchInput" class="form-control" placeholder="제목, 소제목, 키워드, 내용 검색..." oninput="renderNotes()">
+        </div>
+        <div id="notesContainer"></div>
+      </div>
+    </section>
+
+    <!-- 2. 디데이 캘린더 및 진행률 -->
+    <section id="tab-dday" class="tab-content">
+      <div class="card">
+        <h2 class="card-title" id="ddayFormTitle">새 디데이 등록</h2>
+        <form id="ddayForm" onsubmit="saveDDay(event)">
+          <input type="hidden" id="ddayEditId" value="">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>이벤트/목표 이름</label>
+              <input type="text" id="ddayTitle" class="form-control" placeholder="예: 기말고사, 자격증 시험" required>
+            </div>
+            <div class="form-group">
+              <label>목표 날짜</label>
+              <input type="date" id="ddayTargetDate" class="form-control" required>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>시작 날짜 (진행률 계산용)</label>
+              <input type="date" id="ddayStartDate" class="form-control" required>
+            </div>
+            <div class="form-group" style="display:flex; align-items:flex-end;">
+              <button type="submit" id="ddaySubmitBtn" class="btn btn-primary" style="width:100%;">디데이 저장</button>
+            </div>
+          </div>
+        </form>
+      </div>
+      
+      <div class="card">
+        <h2 class="card-title">등록된 디데이 목록</h2>
+        <div class="dday-grid" id="ddayContainer"></div>
+      </div>
+
+      <!-- 인터랙티브 달력 연동 -->
+      <div class="card">
+        <div class="calendar-header">
+          <button class="btn btn-secondary btn-sm" onclick="changeCalendarMonth(-1)">&lt; 이전달</button>
+          <h3 id="calendarMonthTitle">2026년 3월</h3>
+          <button class="btn btn-secondary btn-sm" onclick="changeCalendarMonth(1)">다음달 &gt;</button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </div>
+    </section>
+
+    <!-- 3. 목표 설정 및 체크리스트 -->
+    <section id="tab-goals" class="tab-content">
+      <div class="card">
+        <h2 class="card-title">새 대목표 추가</h2>
+        <form onsubmit="addGoal(event)">
+          <div class="form-group" style="display:flex; gap:10px;">
+            <input type="text" id="goalTitleInput" class="form-control" placeholder="대목표 입력 (예: 자바스크립트 완벽 마스터)" required>
+            <button type="submit" class="btn btn-primary" style="white-space:nowrap;">목표 생성</button>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-title">
+          <span>대목표 및 체크리스트</span>
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
+          <input type="text" id="goalSearchInput" class="form-control" placeholder="목표 제목 실시간 검색..." oninput="renderGoals()">
+        </div>
+        <div id="goalsContainer"></div>
+      </div>
+    </section>
+
+    <!-- 4. 듀얼 타이머 기능 -->
+    <section id="tab-timer" class="tab-content">
+      <div class="timer-container">
+        <!-- 뽀모도로 타이머 -->
+        <div class="card timer-box">
+          <h2>뽀모도로 타이머</h2>
+          <div class="pomo-mode-toggle">
+            <button class="btn btn-sm btn-primary" id="pomoWorkTabBtn" onclick="setPomodoroMode(true)">25분 집중</button>
+            <button class="btn btn-sm btn-secondary" id="pomoBreakTabBtn" onclick="setPomodoroMode(false)">5분 휴식</button>
+          </div>
+          <p id="pomoModeText" style="color:var(--accent); font-weight:600; margin-top:15px;">집중 시간 (25분)</p>
+          <div class="timer-display" id="pomoDisplay">25:00</div>
+          <div class="timer-controls">
+            <button class="btn btn-primary" id="pomoStartBtn" onclick="togglePomodoro()">시작</button>
+            <button class="btn btn-secondary" onclick="resetPomodoro()">초기화</button>
+          </div>
+        </div>
+
+        <!-- 커스텀 타이머 -->
+        <div class="card timer-box">
+          <h2>커스텀 타이머</h2>
+          <div class="grid-3" style="margin-top:15px;">
+            <input type="number" id="customHour" class="form-control" placeholder="시" min="0" max="99" value="0" oninput="validateCustomInput(this, 99)">
+            <input type="number" id="customMin" class="form-control" placeholder="분" min="0" max="59" value="10" oninput="validateCustomInput(this, 59)">
+            <input type="number" id="customSec" class="form-control" placeholder="초" min="0" max="59" value="0" oninput="validateCustomInput(this, 59)">
+          </div>
+          <div class="timer-display" id="customDisplay">00:10:00</div>
+          <div class="timer-controls">
+            <button class="btn btn-primary" id="customStartBtn" onclick="toggleCustomTimer()">시작</button>
+            <button class="btn btn-secondary" onclick="resetCustomTimer()">초기화</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 플래시카드 기능 -->
+    <section id="tab-cards" class="tab-content">
+      <div class="card">
+        <h2 class="card-title" id="cardFormTitle">플래시카드 생성</h2>
+        <form id="cardForm" onsubmit="saveCard(event)">
+          <input type="hidden" id="cardEditId" value="">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>앞면 (질문)</label>
+              <textarea id="cardQuestion" class="form-control" placeholder="질문을 입력하세요" required></textarea>
+            </div>
+            <div class="form-group">
+              <label>뒷면 (정답)</label>
+              <textarea id="cardAnswer" class="form-control" placeholder="정답을 입력하세요" required></textarea>
+            </div>
+          </div>
+          <button type="submit" id="cardSubmitBtn" class="btn btn-primary">카드 추가</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>플래시카드 학습</span>
+          <button class="btn btn-secondary btn-sm" id="cardViewToggleBtn" onclick="toggleCardViewMode()">나열형 보기로 변경</button>
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
+          <input type="text" id="cardSearchInput" class="form-control" placeholder="질문, 정답 검색..." oninput="filterCards()">
+        </div>
+
+        <!-- 1) 슬라이드 모드 UI -->
+        <div id="cardSlideMode" class="flashcard-wrapper">
+          <div id="flashcardArea"></div>
+          <div class="card-nav">
+            <button class="btn btn-secondary" onclick="prevCard()">이전</button>
+            <span id="cardProgress">0 / 0</span>
+            <button class="btn btn-secondary" onclick="nextCard()">다음</button>
+          </div>
+        </div>
+
+        <!-- 2) 나열형(바둑판) 모드 UI -->
+        <div id="cardGridMode" class="flashcard-grid" style="display:none;"></div>
+      </div>
+    </section>
+
+    <!-- 6. 신규: 단어장 탭 -->
+    <section id="tab-vocab" class="tab-content">
+      <div class="card">
+        <h2 class="card-title">새 단어장 추가</h2>
+        <form onsubmit="addVocabBook(event)">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>단어장 이름</label>
+              <input type="text" id="vocabBookName" class="form-control" placeholder="예: 토익 필수 어휘" required>
+            </div>
+            <div class="form-group">
+              <label>주제</label>
+              <input type="text" id="vocabBookSubject" class="form-control" placeholder="예: 영어, 일본어, 수능" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">단어장 생성</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">단어장 목록</h2>
+        <div id="vocabBooksContainer"></div>
+      </div>
+    </section>
+
+    <!-- 7. 신규: 계산기 탭 -->
+    <section id="tab-calc" class="tab-content">
+      <div class="card">
+        <h2 class="card-title" style="justify-content:center;">공학용 계산기</h2>
+        <div class="calculator-wrapper">
+          <input type="text" id="calcDisplay" class="calc-display" readonly value="0">
+          <div class="calc-grid">
+            <button class="btn-calc btn-calc-clear" onclick="calcClear()">AC</button>
+            <button class="btn-calc btn-calc-clear" onclick="calcBackspace()">C</button>
+            <button class="btn-calc btn-calc-fn" onclick="calcAppend('(')">(</button>
+            <button class="btn-calc btn-calc-fn" onclick="calcAppend(')')">)</button>
+            <button class="btn-calc btn-calc-op" onclick="calcAppend('%')">%</button>
+
+            <button class="btn-calc btn-calc-fn" onclick="calcAppend('sin(')">sin</button>
+            <button class="btn-calc btn-calc-fn" onclick="calcAppend('cos(')">cos</button>
+            <button class="btn-calc btn-calc-fn" onclick="calcAppend('tan(')">tan</button>
+            <button class="btn-calc btn-calc-fn" onclick="calcAppend('log(')">log</button>
+            <button class="btn-calc btn-calc-op" onclick="calcAppend('/')">÷</button>
+
+            <button class="btn-calc btn-calc-fn" onclick="calcAppend('√(')">√</button>
+            <button class="btn-calc" onclick="calcAppend('7')">7</button>
+            <button class="btn-calc" onclick="calcAppend('8')">8</button>
+            <button class="btn-calc" onclick="calcAppend('9')">9</button>
+            <button class="btn-calc btn-calc-op" onclick="calcAppend('*')">×</button>
+
+            <button class="btn-calc btn-calc-fn" onclick="calcAppend('^')">^</button>
+            <button class="btn-calc" onclick="calcAppend('4')">4</button>
+            <button class="btn-calc" onclick="calcAppend('5')">5</button>
+            <button class="btn-calc" onclick="calcAppend('6')">6</button>
+            <button class="btn-calc btn-calc-op" onclick="calcAppend('-')">-</button>
+
+            <button class="btn-calc btn-calc-fn" onclick="calcAppend('e')">e</button>
+            <button class="btn-calc" onclick="calcAppend('1')">1</button>
+            <button class="btn-calc" onclick="calcAppend('2')">2</button>
+            <button class="btn-calc" onclick="calcAppend('3')">3</button>
+            <button class="btn-calc btn-calc-op" onclick="calcAppend('+')">+</button>
+
+            <button class="btn-calc" onclick="calcAppend('0')">0</button>
+            <button class="btn-calc" onclick="calcAppend('.')">.</button>
+            <button class="btn-calc btn-calc-eq" onclick="calcCalculate()">=</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. 과목별 공부 시계 및 목표량 리스트 -->
+    <section id="tab-subjects" class="tab-content">
+      <div class="card">
+        <h2 class="card-title">과목 추가</h2>
+        <form onsubmit="addSubject(event)">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>과목명</label>
+              <input type="text" id="subjectName" class="form-control" placeholder="예: 수학, 영어" required>
+            </div>
+            <div class="form-group">
+              <label>목표 공부 시간</label>
+              <div class="grid-3">
+                <input type="number" id="subTargetH" class="form-control" placeholder="시" min="0" max="99" value="3" oninput="validateCustomInput(this, 99)" required>
+                <input type="number" id="subTargetM" class="form-control" placeholder="분" min="0" max="59" value="0" oninput="validateCustomInput(this, 59)" required>
+                <input type="number" id="subTargetS" class="form-control" placeholder="초" min="0" max="59" value="0" oninput="validateCustomInput(this, 59)" required>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">과목 등록</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">과목별 타이머 목록</h2>
+        <div id="subjectsContainer"></div>
+      </div>
+    </section>
+
+    <!-- 9. 스톱워치 및 커스텀 계수기 탭 -->
+    <section id="tab-stopwatch" class="tab-content">
+      <!-- 상단 영역: 일반 스톱워치 -->
+      <div class="card">
+        <h2 class="card-title">시험 및 문제 풀이 스톱워치</h2>
+        <div class="stopwatch-display" id="swDisplay">00:00:00.00</div>
+        <div class="timer-controls">
+          <button class="btn btn-primary" id="swStartBtn" onclick="toggleStopwatch()">시작</button>
+          <button class="btn btn-success" onclick="recordLap()">기록(Lap)</button>
+          <button class="btn btn-secondary" onclick="resetStopwatch()">초기화</button>
+        </div>
+        
+        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: bold; font-size: 0.95rem; color: var(--primary);">랩 타임 기록 목록</span>
+          <button class="btn btn-secondary btn-sm" id="toggleLapsBtn" onclick="toggleLapsVisible()">기록 접기</button>
+        </div>
+        <div class="form-group" style="margin-top: 10px; margin-bottom: 5px;">
+          <input type="text" id="swLapSearchInput" class="form-control" placeholder="스톱워치 기록 제목 검색..." oninput="renderSwLaps()">
+        </div>
+        <div class="laps-container" id="swLaps"></div>
+      </div>
+
+      <!-- 하단 영역: 다중 커스텀 계수기 -->
+      <div class="card">
+        <div class="card-title">
+          <span>다중 커스텀 계수기</span>
+          <button class="btn btn-primary btn-sm" onclick="addCounter()">+ 계수기 추가</button>
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
+          <input type="text" id="counterSearchInput" class="form-control" placeholder="계수기 이름 실시간 검색..." oninput="renderCounters()">
+        </div>
+        <div class="counter-grid" id="countersContainer"></div>
+      </div>
+    </section>
+
+    <!-- 10. 설정 탭 -->
+    <section id="tab-settings" class="tab-content">
+      <div class="card">
+        <h2 class="card-title">앱 설정</h2>
+        <div class="form-group">
+          <label style="font-size: 1rem; margin-bottom: 12px;">테마 설정</label>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="setTheme('default')">기본 테마</button>
+            <button class="btn btn-primary" style="background-color: #00adb5;" onclick="setTheme('navy')">다크 네이비</button>
+            <button class="btn btn-primary" style="background-color: #2563eb;" onclick="setTheme('light')">그레이 & 화이트</button>
+            <button class="btn btn-primary" style="background-color: #dd6b20;" onclick="setTheme('red-orange')">빨강-주황</button>
+            <button class="btn btn-primary" style="background-color: #22543d;" onclick="setTheme('yellow-green')">노랑-초록</button>
+            <button class="btn btn-primary" style="background-color: #3182ce;" onclick="setTheme('blue-indigo')">파랑-남색</button>
+            <button class="btn btn-primary" style="background-color: #805ad5;" onclick="setTheme('purple-white')">보라-화이트</button>
+            <button class="btn btn-primary" style="background-color: #12091f; border: 1px solid #9f7aea; color: #d6bcfa;" onclick="setTheme('purple-black')">보라-블랙</button>
+            <button class="btn btn-warning" onclick="applyRandomTheme()">찐랜덤 테마</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /* ==========================================
+       데이터 구조 & LocalStorage 초기화
+       ========================================== */
+    const DB_KEYS = {
+      NOTES: 'study_app_notes',
+      DDAYS: 'study_app_ddays',
+      GOALS: 'study_app_goals',
+      CARDS: 'study_app_cards',
+      VOCAB_BOOKS: 'study_app_vocab_books',
+      SUBJECTS: 'study_app_subjects',
+      THEME: 'study_app_theme',
+      COUNTERS: 'study_app_counters',
+      MOTTO: 'study_app_motto',
+      SW_LAPS: 'study_app_sw_laps'
+    };
+
+    function loadData(key) {
+      const data = localStorage.getItem(key);
+      if (!data) return key === DB_KEYS.MOTTO ? '오늘도 최선을 다하자!' : [];
+      return JSON.parse(data);
+    }
+
+    function saveData(key, data) {
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+
+    /* ==========================================
+       테마 변경 로직 (확장된 테마 반영)
+       ========================================== */
+    function setTheme(themeName) {
+      document.body.classList.remove('theme-navy', 'theme-light', 'theme-red-orange', 'theme-yellow-green', 'theme-blue-indigo', 'theme-purple-white', 'theme-purple-black');
+      document.body.style.removeProperty('--bg-color');
+      document.body.style.removeProperty('--card-bg');
+      document.body.style.removeProperty('--primary');
+      document.body.style.removeProperty('--accent');
+      document.body.style.removeProperty('--accent-hover');
+      document.body.style.removeProperty('--text');
+      document.body.style.removeProperty('--text-muted');
+      document.body.style.removeProperty('--border');
+
+      if (['navy', 'light', 'red-orange', 'yellow-green', 'blue-indigo', 'purple-white', 'purple-black'].includes(themeName)) {
+        document.body.classList.add(`theme-${themeName}`);
+      }
+      localStorage.setItem(DB_KEYS.THEME, themeName);
+    }
+
+    function applyRandomTheme() {
+      document.body.classList.remove('theme-navy', 'theme-light', 'theme-red-orange', 'theme-yellow-green', 'theme-blue-indigo', 'theme-purple-white', 'theme-purple-black');
+      
+      const getRandomHex = () => '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+      
+      const bg = getRandomHex();
+      const cardBg = getRandomHex();
+      const primary = getRandomHex();
+      const accent = getRandomHex();
+      const text = getRandomHex();
+      const border = getRandomHex();
+
+      document.body.style.setProperty('--bg-color', bg);
+      document.body.style.setProperty('--card-bg', cardBg);
+      document.body.style.setProperty('--primary', primary);
+      document.body.style.setProperty('--accent', accent);
+      document.body.style.setProperty('--accent-hover', accent);
+      document.body.style.setProperty('--text', text);
+      document.body.style.setProperty('--border', border);
+
+      localStorage.setItem(DB_KEYS.THEME, 'custom-random');
+    }
+
+    function loadTheme() {
+      const savedTheme = localStorage.getItem(DB_KEYS.THEME) || 'default';
+      if (savedTheme === 'custom-random') {
+        applyRandomTheme();
+      } else {
+        setTheme(savedTheme);
+      }
+    }
+
+    /* ==========================================
+       동기부여 문구 편집 로직
+       ========================================== */
+    function renderMotto() {
+      const motto = loadData(DB_KEYS.MOTTO);
+      document.getElementById('mottoText').innerText = motto;
+    }
+
+    function enableMottoEdit() {
+      const container = document.getElementById('mottoContainer');
+      const currentText = loadData(DB_KEYS.MOTTO);
+      container.innerHTML = `
+        <input type="text" id="mottoInput" class="motto-input" value="${escapeHtml(currentText)}" onkeydown="handleMottoKey(event)">
+        <button class="btn-motto" onclick="saveMotto()">💾</button>
+      `;
+      const input = document.getElementById('mottoInput');
+      input.focus();
+      input.select();
+    }
+
+    function handleMottoKey(e) {
+      if (e.key === 'Enter') {
+        saveMotto();
+      }
+    }
+
+    function saveMotto() {
+      const input = document.getElementById('mottoInput');
+      if (!input) return;
+      const newMotto = input.value.trim() || '오늘도 최선을 다하자!';
+      saveData(DB_KEYS.MOTTO, newMotto);
+      
+      const container = document.getElementById('mottoContainer');
+      container.innerHTML = `
+        <span class="motto-text" id="mottoText" title="클릭하여 동기부여 문구 수정">${escapeHtml(newMotto)}</span>
+        <button class="btn-motto" onclick="enableMottoEdit()" title="문구 수정">✏️</button>
+      `;
+    }
+
+    /* ==========================================
+       공통 알림 및 유틸리티
+       ========================================== */
+    function playAlarm() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1.5);
+      } catch (e) {
+        console.log('Audio API not supported');
+      }
+      alert('⏰ 설정한 타이머 시간이 완료되었습니다!');
+    }
+
+    function formatTime(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return `${String(h).padStart(2, '0')}시간 ${String(m).padStart(2, '0')}분 ${String(s).padStart(2, '0')}초`;
+    }
+
+    /* ==========================================
+       순수 Canvas 폭죽(Confetti) 애니메이션
+       ========================================== */
+    let confettiParticles = [];
+    let confettiAnimId = null;
+
+    function triggerConfetti() {
+      const canvas = document.getElementById('confettiCanvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800'];
+
+      confettiParticles = [];
+      for (let i = 0; i < 150; i++) {
+        confettiParticles.push({
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          rx: (Math.random() - 0.5) * 18,
+          ry: (Math.random() - 0.7) * 18,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          opacity: 1,
+          gravity: 0.25,
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 10
+        });
+      }
+
+      if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let activeCount = 0;
+
+        confettiParticles.forEach(p => {
+          if (p.opacity > 0) {
+            activeCount++;
+            p.x += p.rx;
+            p.y += p.ry;
+            p.ry += p.gravity;
+            p.opacity -= 0.008;
+            p.rotation += p.rotSpeed;
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate((p.rotation * Math.PI) / 180);
+            ctx.globalAlpha = Math.max(0, p.opacity);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+          }
+        });
+
+        if (activeCount > 0) {
+          confettiAnimId = requestAnimationFrame(render);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+
+      render();
+    }
+
+    /* ==========================================
+       탭 전환 시스템
+       ========================================== */
+    function switchTab(e, tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      if (e && e.currentTarget) {
+        e.currentTarget.classList.add('active');
+      }
+    }
+
+    /* ==========================================
+       1. 대시보드 실시간 시계 & 날짜 & 올해 지나간 기간 진행률
+       ========================================== */
+    function updateClockAndHeader() {
+      const now = new Date();
+      
+      // 1) 12시간제 시계 표시 (오전/오후 HH:MM:SS)
+      let hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const ampm = hours >= 12 ? '오후' : '오전';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0시는 12시로 표시
+      const strHours = String(hours).padStart(2, '0');
+      document.getElementById('digitalClock').innerText = `${ampm} ${strHours}:${minutes}:${seconds}`;
+
+      // 2) 날짜 표시 (YYYY년 MM월 DD일)
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const date = String(now.getDate()).padStart(2, '0');
+      document.getElementById('dateDisplay').innerText = `${year}년 ${month}월 ${date}일`;
+
+      // 3) 올해 지나간 기간 진행률(%) 자동 계산
+      const startOfYear = new Date(year, 0, 1);
+      const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+      const totalMs = endOfYear.getTime() - startOfYear.getTime();
+      const passedMs = now.getTime() - startOfYear.getTime();
+      
+      let passedPercent = (passedMs / totalMs) * 100;
+      passedPercent = Math.min(100, Math.max(0, passedPercent));
+      const formattedPercent = passedPercent.toFixed(1);
+
+      document.getElementById('yearProgressText').innerText = `${formattedPercent}%`;
+      document.getElementById('yearProgressBar').style.width = `${passedPercent}%`;
+    }
+    setInterval(updateClockAndHeader, 1000);
+    updateClockAndHeader();
+
+    /* ==========================================
+       2. 4단 구조 노트 기능
+       ========================================== */
+    let notes = loadData(DB_KEYS.NOTES);
+
+    function toggleNoteAccordion(index) {
+      const noteEl = document.getElementById(`note-item-${index}`);
+      if (noteEl) {
+        noteEl.classList.toggle('open');
+      }
+    }
+
+    function renderNotes() {
+      const container = document.getElementById('notesContainer');
+      const query = (document.getElementById('noteSearchInput')?.value || '').toLowerCase().trim();
+      container.innerHTML = '';
+      
+      const filteredNotes = notes.map((note, originalIndex) => ({ note, originalIndex }))
+        .filter(({ note }) => {
+          if (!query) return true;
+          return note.title.toLowerCase().includes(query) ||
+                 note.subtitle.toLowerCase().includes(query) ||
+                 note.keywords.toLowerCase().includes(query) ||
+                 note.content.toLowerCase().includes(query);
+        });
+
+      if (filteredNotes.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted);">검색 결과 또는 저장된 노트가 없습니다.</p>';
+        return;
+      }
+
+      filteredNotes.forEach(({ note, originalIndex }) => {
+        const item = document.createElement('div');
+        item.className = 'note-item';
+        item.id = `note-item-${originalIndex}`;
+        item.innerHTML = `
+          <div class="note-header" onclick="toggleNoteAccordion(${originalIndex})">
+            <div class="note-title-group">
+              <h4>${escapeHtml(note.title)}</h4>
+              <h5>${escapeHtml(note.subtitle)}</h5>
+              <span class="keywords">키워드: ${escapeHtml(note.keywords)}</span>
+            </div>
+            <span class="accordion-icon">▼</span>
+          </div>
+          <div class="note-content-body">
+            <p>${escapeHtml(note.content)}</p>
+            <div class="note-actions">
+              <button class="btn btn-secondary btn-sm" onclick="editNote(${originalIndex})">수정</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteNote(${originalIndex})">삭제</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function saveNote(e) {
+      e.preventDefault();
+      const editIndex = document.getElementById('noteEditIndex').value;
+      const title = document.getElementById('noteTitle').value.trim();
+      const subtitle = document.getElementById('noteSubtitle').value.trim();
+      const keywords = document.getElementById('noteKeywords').value.trim();
+      const content = document.getElementById('noteContent').value.trim();
+
+      if (editIndex !== '') {
+        notes[parseInt(editIndex)] = { title, subtitle, keywords, content };
+      } else {
+        notes.unshift({ title, subtitle, keywords, content });
+      }
+
+      saveData(DB_KEYS.NOTES, notes);
+      renderNotes();
+      resetNoteForm();
+    }
+
+    function editNote(index) {
+      const note = notes[index];
+      if (!note) return;
+      document.getElementById('noteEditIndex').value = index;
+      document.getElementById('noteTitle').value = note.title;
+      document.getElementById('noteSubtitle').value = note.subtitle;
+      document.getElementById('noteKeywords').value = note.keywords;
+      document.getElementById('noteContent').value = note.content;
+
+      document.getElementById('noteFormTitle').innerText = '4단 구조 노트 수정';
+      document.getElementById('noteSubmitBtn').innerText = '수정 완료';
+      document.getElementById('noteCancelBtn').style.display = 'inline-flex';
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetNoteForm() {
+      document.getElementById('noteForm').reset();
+      document.getElementById('noteEditIndex').value = '';
+      document.getElementById('noteFormTitle').innerText = '4단 구조 노트 작성';
+      document.getElementById('noteSubmitBtn').innerText = '노트 저장';
+      document.getElementById('noteCancelBtn').style.display = 'none';
+    }
+
+    function deleteNote(index) {
+      if (confirm('이 노트를 삭제하시겠습니까?')) {
+        notes.splice(index, 1);
+        saveData(DB_KEYS.NOTES, notes);
+        renderNotes();
+        if (document.getElementById('noteEditIndex').value == index) {
+          resetNoteForm();
+        }
+      }
+    }
+
+    /* ==========================================
+       3. 디데이 캘린더 및 진행률 (+ 달력 UI)
+       ========================================== */
+    let ddays = loadData(DB_KEYS.DDAYS);
+    let currentCalDate = new Date();
+
+    function renderDDays() {
+      const container = document.getElementById('ddayContainer');
+      container.innerHTML = '';
+      if (ddays.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted);">등록된 디데이가 없습니다.</p>';
+      } else {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        ddays.forEach((item) => {
+          const start = new Date(item.startDate);
+          const target = new Date(item.targetDate);
+          start.setHours(0, 0, 0, 0);
+          target.setHours(0, 0, 0, 0);
+
+          const totalDiff = target.getTime() - start.getTime();
+          const currentDiff = today.getTime() - start.getTime();
+          const remainDiff = target.getTime() - today.getTime();
+
+          const remainDays = Math.ceil(remainDiff / (1000 * 60 * 60 * 24));
+          
+          let progress = 0;
+          if (totalDiff > 0) {
+            progress = Math.min(100, Math.max(0, Math.round((currentDiff / totalDiff) * 100)));
+          } else if (today >= target) {
+            progress = 100;
+          }
+
+          let ddayText = '';
+          if (remainDays > 0) ddayText = `D-${remainDays}`;
+          else if (remainDays === 0) ddayText = 'D-DAY';
+          else ddayText = `D+${Math.abs(remainDays)}`;
+
+          const card = document.createElement('div');
+          card.className = 'dday-card';
+          card.innerHTML = `
+            <div class="dday-header">
+              <span class="dday-title">${escapeHtml(item.title)}</span>
+              <span class="dday-badge">${ddayText}</span>
+            </div>
+            <div class="dday-info">목표일: ${item.targetDate} (시작일: ${item.startDate})</div>
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-muted);">
+                <span>진행률</span>
+                <span>${progress}%</span>
+              </div>
+              <div class="progress-container">
+                <div class="progress-bar" style="width: ${progress}%;"></div>
+              </div>
+            </div>
+            <div style="margin-top:15px; display:flex; gap:5px; justify-content:flex-end;">
+              <button class="btn btn-secondary btn-sm" onclick="editDDay('${item.id}')">수정</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteDDay('${item.id}')">삭제</button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      }
+
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const year = currentCalDate.getFullYear();
+      const month = currentCalDate.getMonth();
+      
+      document.getElementById('calendarMonthTitle').innerText = `${year}년 ${month + 1}월`;
+
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
+      daysOfWeek.forEach(day => {
+        const h = document.createElement('div');
+        h.className = 'calendar-day-head';
+        h.innerText = day;
+        grid.appendChild(h);
+      });
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+      const prevLastDate = new Date(year, month, 0).getDate();
+
+      const today = new Date();
+      const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
+      // 이전 달 날짜
+      for (let i = firstDay - 1; i >= 0; i--) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell other-month';
+        cell.innerHTML = `<span>${prevLastDate - i}</span>`;
+        grid.appendChild(cell);
+      }
+
+      // 이번 달 날짜
+      for (let d = 1; d <= lastDate; d++) {
+        const cell = document.createElement('div');
+        let classes = 'calendar-cell';
+        if (isCurrentMonth && d === today.getDate()) {
+          classes += ' today';
+        }
+        cell.className = classes;
+
+        const currentFormatted = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        let eventHtml = '';
+
+        ddays.forEach(item => {
+          if (item.targetDate === currentFormatted) {
+            eventHtml += `<div class="calendar-event-tag" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</div>`;
+          }
+        });
+
+        cell.innerHTML = `<span>${d}</span>${eventHtml}`;
+        grid.appendChild(cell);
+      }
+
+      // 다음 달 날짜 채우기
+      const totalCells = firstDay + lastDate;
+      const nextDays = (7 - (totalCells % 7)) % 7;
+      for (let i = 1; i <= nextDays; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell other-month';
+        cell.innerHTML = `<span>${i}</span>`;
+        grid.appendChild(cell);
+      }
+    }
+
+    function changeCalendarMonth(offset) {
+      currentCalDate.setMonth(currentCalDate.getMonth() + offset);
+      renderCalendar();
+    }
+
+    function saveDDay(e) {
+      e.preventDefault();
+      const id = document.getElementById('ddayEditId').value;
+      const title = document.getElementById('ddayTitle').value.trim();
+      const targetDate = document.getElementById('ddayTargetDate').value;
+      const startDate = document.getElementById('ddayStartDate').value;
+
+      if (new Date(startDate) > new Date(targetDate)) {
+        alert('시작 날짜는 목표 날짜보다 이전이거나 같아야 합니다.');
+        return;
+      }
+
+      if (id) {
+        const index = ddays.findIndex(d => d.id === id);
+        if (index !== -1) {
+          ddays[index] = { id, title, targetDate, startDate };
+        }
+      } else {
+        ddays.push({ id: Date.now().toString(), title, targetDate, startDate });
+      }
+
+      saveData(DB_KEYS.DDAYS, ddays);
+      renderDDays();
+      resetDDayForm();
+    }
+
+    function editDDay(id) {
+      const item = ddays.find(d => d.id === id);
+      if (!item) return;
+      document.getElementById('ddayEditId').value = item.id;
+      document.getElementById('ddayTitle').value = item.title;
+      document.getElementById('ddayTargetDate').value = item.targetDate;
+      document.getElementById('ddayStartDate').value = item.startDate;
+      document.getElementById('ddayFormTitle').innerText = '디데이 수정';
+      document.getElementById('ddaySubmitBtn').innerText = '수정 완료';
+    }
+
+    function resetDDayForm() {
+      document.getElementById('ddayForm').reset();
+      document.getElementById('ddayEditId').value = '';
+      document.getElementById('ddayFormTitle').innerText = '새 디데이 등록';
+      document.getElementById('ddaySubmitBtn').innerText = '디데이 저장';
+    }
+
+    function deleteDDay(id) {
+      if (confirm('이 디데이 항목을 삭제하시겠습니까?')) {
+        ddays = ddays.filter(d => d.id !== id);
+        saveData(DB_KEYS.DDAYS, ddays);
+        renderDDays();
+      }
+    }
+
+    /* ==========================================
+       4. 목표 설정 및 체크리스트
+       ========================================== */
+    let goals = loadData(DB_KEYS.GOALS);
+
+    function renderGoals() {
+      const container = document.getElementById('goalsContainer');
+      const query = (document.getElementById('goalSearchInput')?.value || '').toLowerCase().trim();
+      container.innerHTML = '';
+
+      const filteredGoals = goals.filter(g => !query || g.title.toLowerCase().includes(query));
+
+      if (filteredGoals.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted);">검색 결과 또는 등록된 목표가 없습니다.</p>';
+        return;
+      }
+
+      filteredGoals.forEach((goal) => {
+        const total = goal.todos.length;
+        const completed = goal.todos.filter(t => t.completed).length;
+        const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+        const card = document.createElement('div');
+        card.className = 'card goal-item';
+        
+        let todosHtml = '';
+        goal.todos.forEach((todo) => {
+          todosHtml += `
+            <li class="todo-item ${todo.completed ? 'completed' : ''}">
+              <div class="todo-left">
+                <input type="checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleTodo('${goal.id}', '${todo.id}')">
+                <span>${escapeHtml(todo.text)}</span>
+              </div>
+              <button class="btn btn-danger btn-sm" onclick="deleteTodo('${goal.id}', '${todo.id}')">삭제</button>
+            </li>
+          `;
+        });
+
+        card.innerHTML = `
+          <div class="goal-header">
+            <div class="goal-title-area" id="goal-title-area-${goal.id}">
+              <h3>${escapeHtml(goal.title)}</h3>
+            </div>
+            <div style="display:flex; gap:5px;">
+              <button class="btn btn-secondary btn-sm" onclick="editGoalTitle('${goal.id}')">수정</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteGoal('${goal.id}')">목표 삭제</button>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--text-muted);">
+              <span>달성 진행률 (${completed}/${total})</span>
+              <span>${percent}%</span>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar" style="width: ${percent}%;"></div>
+            </div>
+          </div>
+          <form onsubmit="addTodo(event, '${goal.id}')" style="margin-top:15px; display:flex; gap:8px;">
+            <input type="text" class="form-control todo-input" placeholder="세부 할 일 추가..." required>
+            <button type="submit" class="btn btn-primary btn-sm" style="white-space:nowrap;">추가</button>
+          </form>
+          <ul class="todo-list">${todosHtml}</ul>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function addGoal(e) {
+      e.preventDefault();
+      const input = document.getElementById('goalTitleInput');
+      const title = input.value.trim();
+      if (!title) return;
+
+      goals.push({
+        id: Date.now().toString(),
+        title,
+        todos: []
+      });
+      saveData(DB_KEYS.GOALS, goals);
+      renderGoals();
+      input.value = '';
+    }
+
+    function editGoalTitle(goalId) {
+      const goal = goals.find(g => g.id === goalId);
+      if (!goal) return;
+
+      const area = document.getElementById(`goal-title-area-${goalId}`);
+      area.innerHTML = `
+        <input type="text" class="form-control" id="edit-goal-input-${goalId}" value="${escapeHtml(goal.title)}" style="font-weight:bold; font-size:1.1rem;">
+        <button class="btn btn-success btn-sm" onclick="saveGoalTitle('${goalId}')">저장</button>
+        <button class="btn btn-secondary btn-sm" onclick="renderGoals()">취소</button>
+      `;
+    }
+
+    function saveGoalTitle(goalId) {
+      const input = document.getElementById(`edit-goal-input-${goalId}`);
+      if (!input) return;
+      const newTitle = input.value.trim();
+      if (!newTitle) return;
+
+      const goal = goals.find(g => g.id === goalId);
+      if (goal) {
+        goal.title = newTitle;
+        saveData(DB_KEYS.GOALS, goals);
+        renderGoals();
+      }
+    }
+
+    function deleteGoal(goalId) {
+      if (confirm('대목표와 하위 체크리스트가 모두 삭제됩니다. 계속하시겠습니까?')) {
+        goals = goals.filter(g => g.id !== goalId);
+        saveData(DB_KEYS.GOALS, goals);
+        renderGoals();
+      }
+    }
+
+    function addTodo(e, goalId) {
+      e.preventDefault();
+      const input = e.target.querySelector('.todo-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const goal = goals.find(g => g.id === goalId);
+      if (goal) {
+        goal.todos.push({
+          id: Date.now().toString(),
+          text,
+          completed: false
+        });
+        saveData(DB_KEYS.GOALS, goals);
+        renderGoals();
+      }
+    }
+
+    function toggleTodo(goalId, todoId) {
+      const goal = goals.find(g => g.id === goalId);
+      if (goal) {
+        const todo = goal.todos.find(t => t.id === todoId);
+        if (todo) {
+          todo.completed = !todo.completed;
+          saveData(DB_KEYS.GOALS, goals);
+          renderGoals();
+        }
+      }
+    }
+
+    function deleteTodo(goalId, todoId) {
+      const goal = goals.find(g => g.id === goalId);
+      if (goal) {
+        goal.todos = goal.todos.filter(t => t.id !== todoId);
+        saveData(DB_KEYS.GOALS, goals);
+        renderGoals();
+      }
+    }
+
+    /* ==========================================
+       5. 듀얼 타이머 기능
+       ========================================== */
+    function validateCustomInput(input, maxVal) {
+      let val = input.value.replace(/[^0-9]/g, '');
+      if (val !== '') {
+        let num = parseInt(val, 10);
+        if (num > maxVal) num = maxVal;
+        if (num < 0) num = 0;
+        input.value = num;
+      } else {
+        input.value = '';
+      }
+    }
+
+    // A. 뽀모도로 타이머
+    let pomoTimer = null;
+    let pomoTime = 25 * 60;
+    let isPomoWork = true;
+    let isPomoRunning = false;
+
+    function updatePomoDisplay() {
+      const m = String(Math.floor(pomoTime / 60)).padStart(2, '0');
+      const s = String(pomoTime % 60).padStart(2, '0');
+      document.getElementById('pomoDisplay').innerText = `${m}:${s}`;
+    }
+
+    function setPomodoroMode(workMode) {
+      if (isPomoRunning) {
+        clearInterval(pomoTimer);
+        isPomoRunning = false;
+        document.getElementById('pomoStartBtn').innerText = '시작';
+      }
+
+      isPomoWork = workMode;
+      const workBtn = document.getElementById('pomoWorkTabBtn');
+      const breakBtn = document.getElementById('pomoBreakTabBtn');
+
+      if (isPomoWork) {
+        pomoTime = 25 * 60;
+        document.getElementById('pomoModeText').innerText = '집중 시간 (25분)';
+        workBtn.className = 'btn btn-sm btn-primary';
+        breakBtn.className = 'btn btn-sm btn-secondary';
+      } else {
+        pomoTime = 5 * 60;
+        document.getElementById('pomoModeText').innerText = '휴식 시간 (5분)';
+        workBtn.className = 'btn btn-sm btn-secondary';
+        breakBtn.className = 'btn btn-sm btn-primary';
+      }
+      updatePomoDisplay();
+    }
+
+    function togglePomodoro() {
+      const btn = document.getElementById('pomoStartBtn');
+      if (isPomoRunning) {
+        clearInterval(pomoTimer);
+        isPomoRunning = false;
+        btn.innerText = '시작';
+      } else {
+        isPomoRunning = true;
+        btn.innerText = '일시정지';
+        pomoTimer = setInterval(() => {
+          if (pomoTime > 0) {
+            pomoTime--;
+            updatePomoDisplay();
+          } else {
+            clearInterval(pomoTimer);
+            isPomoRunning = false;
+            btn.innerText = '시작';
+            playAlarm();
+            setPomodoroMode(!isPomoWork);
+          }
+        }, 1000);
+      }
+    }
+
+    function resetPomodoro() {
+      clearInterval(pomoTimer);
+      isPomoRunning = false;
+      document.getElementById('pomoStartBtn').innerText = '시작';
+      setPomodoroMode(isPomoWork);
+    }
+
+    // B. 커스텀 타이머
+    let customTimer = null;
+    let customTime = 600;
+    let isCustomRunning = false;
+
+    function updateCustomDisplay() {
+      const h = Math.floor(customTime / 3600);
+      const m = Math.floor((customTime % 3600) / 60);
+      const s = customTime % 60;
+      document.getElementById('customDisplay').innerText = 
+        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function toggleCustomTimer() {
+      const btn = document.getElementById('customStartBtn');
+      if (isCustomRunning) {
+        clearInterval(customTimer);
+        isCustomRunning = false;
+        btn.innerText = '시작';
+      } else {
+        if (!isCustomRunning && customTime === 0) {
+          const h = parseInt(document.getElementById('customHour').value) || 0;
+          const m = parseInt(document.getElementById('customMin').value) || 0;
+          const s = parseInt(document.getElementById('customSec').value) || 0;
+          customTime = h * 3600 + m * 60 + s;
         }
 
-        function toggleSub(parent, type) {
-            document.getElementById(parent + '-list-page').style.display = type === 'list' ? 'block' : 'none';
-            document.getElementById(parent + '-new-page').style.display = type === 'new' ? 'block' : 'none';
-            if(parent === 'quiz') document.getElementById('quiz-solve-page').style.display = 'none';
+        if (customTime <= 0) {
+          alert('타이머 시간을 설정해주세요.');
+          return;
+        }
+
+        isCustomRunning = true;
+        btn.innerText = '일시정지';
+        customTimer = setInterval(() => {
+          if (customTime > 0) {
+            customTime--;
+            updateCustomDisplay();
+          } else {
+            clearInterval(customTimer);
+            isCustomRunning = false;
+            btn.innerText = '시작';
+            playAlarm();
+          }
+        }, 1000);
+      }
+    }
+
+    function resetCustomTimer() {
+      clearInterval(customTimer);
+      isCustomRunning = false;
+      const h = parseInt(document.getElementById('customHour').value) || 0;
+      const m = parseInt(document.getElementById('customMin').value) || 0;
+      const s = parseInt(document.getElementById('customSec').value) || 0;
+      customTime = h * 3600 + m * 60 + s;
+      document.getElementById('customStartBtn').innerText = '시작';
+      updateCustomDisplay();
+    }
+
+    ['customHour', 'customMin', 'customSec'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => {
+        if (!isCustomRunning) {
+          const h = parseInt(document.getElementById('customHour').value) || 0;
+          const m = parseInt(document.getElementById('customMin').value) || 0;
+          const s = parseInt(document.getElementById('customSec').value) || 0;
+          customTime = h * 3600 + m * 60 + s;
+          updateCustomDisplay();
+        }
+      });
+    });
+
+    /* ==========================================
+       6. 플래시카드 기능
+       ========================================== */
+    let cards = loadData(DB_KEYS.CARDS);
+    let currentCardIndex = 0;
+    let isFlipped = false;
+    let isGridView = false;
+
+    function getFilteredCards() {
+      const query = (document.getElementById('cardSearchInput')?.value || '').toLowerCase().trim();
+      return cards.filter(card => {
+        if (!query) return true;
+        return card.question.toLowerCase().includes(query) ||
+               card.answer.toLowerCase().includes(query);
+      });
+    }
+
+    function filterCards() {
+      currentCardIndex = 0;
+      isFlipped = false;
+      if (isGridView) renderGridCards();
+      else renderFlashcard();
+    }
+
+    function toggleCardViewMode() {
+      isGridView = !isGridView;
+      const btn = document.getElementById('cardViewToggleBtn');
+      const slideWrapper = document.getElementById('cardSlideMode');
+      const gridWrapper = document.getElementById('cardGridMode');
+
+      if (isGridView) {
+        btn.innerText = '슬라이드 보기로 변경';
+        slideWrapper.style.display = 'none';
+        gridWrapper.style.display = 'grid';
+        renderGridCards();
+      } else {
+        btn.innerText = '나열형 보기로 변경';
+        slideWrapper.style.display = 'block';
+        gridWrapper.style.display = 'none';
+        renderFlashcard();
+      }
+    }
+
+    function renderFlashcard() {
+      const container = document.getElementById('flashcardArea');
+      const progress = document.getElementById('cardProgress');
+      container.innerHTML = '';
+
+      const activeCards = getFilteredCards();
+
+      if (activeCards.length === 0) {
+        container.innerHTML = `
+          <div class="card" style="padding:40px; text-align:center; color:var(--text-muted);">
+            검색 결과 또는 등록된 플래시카드가 없습니다.
+          </div>`;
+        progress.innerText = '0 / 0';
+        return;
+      }
+
+      if (currentCardIndex >= activeCards.length) currentCardIndex = activeCards.length - 1;
+      if (currentCardIndex < 0) currentCardIndex = 0;
+
+      const card = activeCards[currentCardIndex];
+      progress.innerText = `${currentCardIndex + 1} / ${activeCards.length}`;
+
+      const cardEl = document.createElement('div');
+      cardEl.className = `flashcard ${isFlipped ? 'flipped' : ''}`;
+      cardEl.onclick = () => {
+        isFlipped = !isFlipped;
+        cardEl.classList.toggle('flipped');
+      };
+
+      cardEl.innerHTML = `
+        <div class="flashcard-inner">
+          <div class="flashcard-front">
+            <span style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">Q (클릭하여 뒤집기)</span>
+            <h3 style="white-space:pre-wrap;">${escapeHtml(card.question)}</h3>
+          </div>
+          <div class="flashcard-back">
+            <span style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">A (정답)</span>
+            <h3 style="white-space:pre-wrap;">${escapeHtml(card.answer)}</h3>
+          </div>
+        </div>
+      `;
+
+      const controls = document.createElement('div');
+      controls.style.marginTop = '10px';
+      controls.innerHTML = `
+        <button class="btn btn-secondary btn-sm" onclick="editCard(event, '${card.id}')">수정</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCard(event, '${card.id}')">삭제</button>
+      `;
+
+      container.appendChild(cardEl);
+      container.appendChild(controls);
+    }
+
+    function renderGridCards() {
+      const container = document.getElementById('cardGridMode');
+      container.innerHTML = '';
+
+      const activeCards = getFilteredCards();
+
+      if (activeCards.length === 0) {
+        container.innerHTML = `
+          <div class="card" style="grid-column: 1 / -1; padding:40px; text-align:center; color:var(--text-muted);">
+            검색 결과 또는 등록된 플래시카드가 없습니다.
+          </div>`;
+        return;
+      }
+
+      activeCards.forEach((card) => {
+        const itemWrapper = document.createElement('div');
+        itemWrapper.style.display = 'flex';
+        itemWrapper.style.flexDirection = 'column';
+        itemWrapper.style.alignItems = 'center';
+
+        const cardEl = document.createElement('div');
+        cardEl.className = 'flashcard';
+        cardEl.onclick = () => {
+          cardEl.classList.toggle('flipped');
+        };
+
+        cardEl.innerHTML = `
+          <div class="flashcard-inner">
+            <div class="flashcard-front">
+              <span style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">Q (클릭하여 뒤집기)</span>
+              <h3 style="white-space:pre-wrap;">${escapeHtml(card.question)}</h3>
+            </div>
+            <div class="flashcard-back">
+              <span style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">A (정답)</span>
+              <h3 style="white-space:pre-wrap;">${escapeHtml(card.answer)}</h3>
+            </div>
+          </div>
+        `;
+
+        const controls = document.createElement('div');
+        controls.style.marginTop = '8px';
+        controls.style.display = 'flex';
+        controls.style.gap = '5px';
+        controls.innerHTML = `
+          <button class="btn btn-secondary btn-sm" onclick="editCard(event, '${card.id}')">수정</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCard(event, '${card.id}')">삭제</button>
+        `;
+
+        itemWrapper.appendChild(cardEl);
+        itemWrapper.appendChild(controls);
+        container.appendChild(itemWrapper);
+      });
+    }
+
+    function saveCard(e) {
+      e.preventDefault();
+      const id = document.getElementById('cardEditId').value;
+      const question = document.getElementById('cardQuestion').value.trim();
+      const answer = document.getElementById('cardAnswer').value.trim();
+
+      if (id) {
+        const index = cards.findIndex(c => c.id === id);
+        if (index !== -1) {
+          cards[index] = { id, question, answer };
+        }
+      } else {
+        cards.push({ id: Date.now().toString(), question, answer });
+        currentCardIndex = cards.length - 1;
+      }
+
+      saveData(DB_KEYS.CARDS, cards);
+      isFlipped = false;
+      
+      if (isGridView) renderGridCards();
+      else renderFlashcard();
+      
+      resetCardForm();
+    }
+
+    function editCard(e, id) {
+      e.stopPropagation();
+      const card = cards.find(c => c.id === id);
+      if (!card) return;
+
+      document.getElementById('cardEditId').value = card.id;
+      document.getElementById('cardQuestion').value = card.question;
+      document.getElementById('cardAnswer').value = card.answer;
+      document.getElementById('cardFormTitle').innerText = '플래시카드 수정';
+      document.getElementById('cardSubmitBtn').innerText = '수정 완료';
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetCardForm() {
+      document.getElementById('cardForm').reset();
+      document.getElementById('cardEditId').value = '';
+      document.getElementById('cardFormTitle').innerText = '플래시카드 생성';
+      document.getElementById('cardSubmitBtn').innerText = '카드 추가';
+    }
+
+    function deleteCard(e, id) {
+      e.stopPropagation();
+      if (confirm('이 카드를 삭제하시겠습니까?')) {
+        cards = cards.filter(c => c.id !== id);
+        saveData(DB_KEYS.CARDS, cards);
+        isFlipped = false;
+        
+        if (isGridView) renderGridCards();
+        else renderFlashcard();
+      }
+    }
+
+    function prevCard() {
+      const activeCards = getFilteredCards();
+      if (currentCardIndex > 0) {
+        currentCardIndex--;
+        isFlipped = false;
+        renderFlashcard();
+      }
+    }
+
+    function nextCard() {
+      const activeCards = getFilteredCards();
+      if (currentCardIndex < activeCards.length - 1) {
+        currentCardIndex++;
+        isFlipped = false;
+        renderFlashcard();
+      }
+    }
+
+    /* ==========================================
+       7. 신규: 단어장 시스템
+       ========================================== */
+    let vocabBooks = loadData(DB_KEYS.VOCAB_BOOKS);
+
+    function renderVocabBooks() {
+      const container = document.getElementById('vocabBooksContainer');
+      container.innerHTML = '';
+
+      if (vocabBooks.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted);">등록된 단어장이 없습니다.</p>';
+        return;
+      }
+
+      vocabBooks.forEach((book) => {
+        const bookItem = document.createElement('div');
+        bookItem.className = 'vocab-book-item';
+        bookItem.id = `vocab-book-${book.id}`;
+
+        let wordsTableRows = '';
+        const searchQuery = (document.getElementById(`vocabSearchInput-${book.id}`)?.value || '').toLowerCase().trim();
+        
+        const filteredWords = book.words.filter(w => 
+          !searchQuery || 
+          w.word.toLowerCase().includes(searchQuery) || 
+          w.meaning.toLowerCase().includes(searchQuery)
+        );
+
+        filteredWords.forEach(w => {
+          wordsTableRows += `
+            <tr>
+              <td style="width: 70px; text-align: center; font-weight: bold;">${w.num}</td>
+              <td>${escapeHtml(w.word)}</td>
+              <td>${escapeHtml(w.meaning)}</td>
+              <td style="width: 70px; text-align: center;">
+                <button class="btn btn-danger btn-sm" onclick="deleteWord('${book.id}', '${w.id}')">삭제</button>
+              </td>
+            </tr>
+          `;
+        });
+
+        bookItem.innerHTML = `
+          <div class="vocab-book-header" onclick="toggleVocabAccordion('${book.id}')">
+            <div>
+              <span style="font-weight:bold; font-size:1.1rem; color:var(--primary);">${escapeHtml(book.name)}</span>
+              <span class="subject-tag">${escapeHtml(book.subject)}</span>
+              <span style="font-size:0.85rem; color:var(--text-muted); margin-left:10px;">(단어 ${book.words.length}개)</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <button class="btn btn-danger btn-sm" onclick="deleteVocabBook(event, '${book.id}')">단어장 삭제</button>
+              <span class="accordion-icon">▼</span>
+            </div>
+          </div>
+          <div class="vocab-book-body">
+            <!-- 내부 검색창 -->
+            <div class="form-group">
+              <input type="text" id="vocabSearchInput-${book.id}" class="form-control" placeholder="단어 또는 뜻 검색..." value="${escapeHtml(searchQuery)}" oninput="renderVocabBooks()">
+            </div>
+            <!-- 단어 추가 폼 -->
+            <form onsubmit="addWord(event, '${book.id}')" style="margin-bottom:15px;">
+              <div class="grid-3">
+                <input type="number" id="wordNum-${book.id}" class="form-control" placeholder="번호 (양의 정수)" min="1" step="1" required>
+                <input type="text" id="wordText-${book.id}" class="form-control" placeholder="단어" required>
+                <input type="text" id="wordMeaning-${book.id}" class="form-control" placeholder="뜻" required>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm" style="margin-top:10px;">+ 단어 추가</button>
+            </form>
+            <!-- 단어 목록 테이블 -->
+            <table class="word-table">
+              <thead>
+                <tr>
+                  <th style="width: 70px; text-align: center;">번호</th>
+                  <th>단어</th>
+                  <th>뜻</th>
+                  <th style="width: 70px; text-align: center;">관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${wordsTableRows || '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">등록된 단어가 없습니다.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        `;
+        container.appendChild(bookItem);
+      });
+    }
+
+    function toggleVocabAccordion(bookId) {
+      const bookEl = document.getElementById(`vocab-book-${bookId}`);
+      if (bookEl) {
+        bookEl.classList.toggle('open');
+      }
+    }
+
+    function addVocabBook(e) {
+      e.preventDefault();
+      const name = document.getElementById('vocabBookName').value.trim();
+      const subject = document.getElementById('vocabBookSubject').value.trim();
+      if (!name || !subject) return;
+
+      vocabBooks.push({
+        id: Date.now().toString(),
+        name,
+        subject,
+        words: []
+      });
+
+      saveData(DB_KEYS.VOCAB_BOOKS, vocabBooks);
+      renderVocabBooks();
+      e.target.reset();
+    }
+
+    function deleteVocabBook(e, bookId) {
+      e.stopPropagation();
+      if (confirm('이 단어장과 저장된 모든 단어가 삭제됩니다. 계속하시겠습니까?')) {
+        vocabBooks = vocabBooks.filter(b => b.id !== bookId);
+        saveData(DB_KEYS.VOCAB_BOOKS, vocabBooks);
+        renderVocabBooks();
+      }
+    }
+
+    function addWord(e, bookId) {
+      e.preventDefault();
+      const numInput = document.getElementById(`wordNum-${bookId}`);
+      const textInput = document.getElementById(`wordText-${bookId}`);
+      const meaningInput = document.getElementById(`wordMeaning-${bookId}`);
+
+      const numVal = parseInt(numInput.value, 10);
+      const wordVal = textInput.value.trim();
+      const meaningVal = meaningInput.value.trim();
+
+      // 유효성 검증 ①: 양의 정수 여부 확인
+      if (isNaN(numVal) || numVal <= 0) {
+        alert('번호는 양의 정수만 입력 가능합니다.');
+        return;
+      }
+
+      const book = vocabBooks.find(b => b.id === bookId);
+      if (!book) return;
+
+      // 유효성 검증 ②: 번호 중복 확인
+      const isDuplicate = book.words.some(w => w.num === numVal);
+      if (isDuplicate) {
+        alert('이미 있는 번호입니다.');
+        return;
+      }
+
+      book.words.push({
+        id: Date.now().toString(),
+        num: numVal,
+        word: wordVal,
+        meaning: meaningVal
+      });
+
+      // 번호순 자동 정렬
+      book.words.sort((a, b) => a.num - b.num);
+
+      saveData(DB_KEYS.VOCAB_BOOKS, vocabBooks);
+      renderVocabBooks();
+
+      // 등록 성공 후 펼침 상태 유지
+      const bookEl = document.getElementById(`vocab-book-${bookId}`);
+      if (bookEl) bookEl.classList.add('open');
+    }
+
+    function deleteWord(bookId, wordId) {
+      const book = vocabBooks.find(b => b.id === bookId);
+      if (book) {
+        book.words = book.words.filter(w => w.id !== wordId);
+        saveData(DB_KEYS.VOCAB_BOOKS, vocabBooks);
+        renderVocabBooks();
+        const bookEl = document.getElementById(`vocab-book-${bookId}`);
+        if (bookEl) bookEl.classList.add('open');
+      }
+    }
+
+    /* ==========================================
+       8. 신규: 공학용 계산기
+       ========================================== */
+    let calcExpression = '0';
+
+    function calcUpdateDisplay() {
+      document.getElementById('calcDisplay').value = calcExpression;
+    }
+
+    function calcAppend(val) {
+      if (calcExpression === '0' && val !== '.' && !['+', '-', '*', '/', '%', '^'].includes(val)) {
+        calcExpression = val;
+      } else {
+        calcExpression += val;
+      }
+      calcUpdateDisplay();
+    }
+
+    function calcClear() {
+      calcExpression = '0';
+      calcUpdateDisplay();
+    }
+
+    function calcBackspace() {
+      if (calcExpression.length > 1) {
+        calcExpression = calcExpression.slice(0, -1);
+      } else {
+        calcExpression = '0';
+      }
+      calcUpdateDisplay();
+    }
+
+    function calcCalculate() {
+      try {
+        let parsedStr = calcExpression
+          .replace(/×/g, '*')
+          .replace(/÷/g, '/')
+          .replace(/sin\(/g, 'Math.sin(')
+          .replace(/cos\(/g, 'Math.cos(')
+          .replace(/tan\(/g, 'Math.tan(')
+          .replace(/log\(/g, 'Math.log10(')
+          .replace(/√\(/g, 'Math.sqrt(')
+          .replace(/\^/g, '**')
+          .replace(/\be\b/g, 'Math.E');
+
+        // 수학 계산 실행
+        let res = Function('"use strict"; return (' + parsedStr + ')')();
+        if (typeof res === 'number' && !isNaN(res) && isFinite(res)) {
+          calcExpression = String(Number(res.toFixed(8))); // 소수점 깔끔 정리
+        } else {
+          calcExpression = 'Error';
+        }
+      } catch (err) {
+        calcExpression = 'Error';
+      }
+      calcUpdateDisplay();
+    }
+
+    /* ==========================================
+       9. 과목별 타이머
+       ========================================== */
+    let subjects = loadData(DB_KEYS.SUBJECTS);
+    let activeSubjectId = null;
+    let subjectTimer = null;
+
+    function renderSubjects() {
+      const container = document.getElementById('subjectsContainer');
+      container.innerHTML = '';
+
+      if (subjects.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted);">등록된 과목이 없습니다.</p>';
+        return;
+      }
+
+      subjects.forEach((sub) => {
+        const targetSec = sub.targetSeconds || (sub.targetHours ? Math.round(sub.targetHours * 3600) : 10800);
+        const progress = targetSec > 0 ? Math.min(100, Math.round((sub.elapsedSeconds / targetSec) * 100)) : 0;
+        const isRunning = activeSubjectId === sub.id;
+
+        const isOver = sub.elapsedSeconds > targetSec;
+        const overtimeSec = isOver ? sub.elapsedSeconds - targetSec : 0;
+
+        let timeDisplayHtml = '';
+        if (isOver) {
+          timeDisplayHtml = `달성: ${formatTime(targetSec)} <span class="overtime-text">+ 초과 ${formatTime(overtimeSec)}</span>`;
+        } else {
+          timeDisplayHtml = formatTime(sub.elapsedSeconds);
+        }
+
+        const item = document.createElement('div');
+        item.className = 'subject-item';
+        item.innerHTML = `
+          <div class="subject-info">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="font-size:1.1rem; color:var(--primary);">${escapeHtml(sub.name)}</strong>
+              <span style="font-size:0.85rem; color:var(--text-muted);">목표: ${formatTime(targetSec)}</span>
+            </div>
+            <div class="subject-time">${timeDisplayHtml}</div>
+            <div class="progress-container">
+              <div class="progress-bar" style="width: ${progress}%; ${isOver ? 'background-color: var(--success);' : ''}"></div>
+            </div>
+            <div style="text-align:right; font-size:0.75rem; color:var(--text-muted); margin-top:2px;">달성도: ${progress}%</div>
+          </div>
+          <div style="display:flex; gap:5px; flex-direction:column;">
+            <button class="btn ${isRunning ? 'btn-danger' : 'btn-success'} btn-sm" onclick="toggleSubjectTimer('${sub.id}')">
+              ${isRunning ? '정지' : '공부 시작'}
+            </button>
+            <button class="btn btn-warning btn-sm" onclick="resetSubjectTimer('${sub.id}')">초기화</button>
+            <button class="btn btn-secondary btn-sm" onclick="deleteSubject('${sub.id}')">삭제</button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function addSubject(e) {
+      e.preventDefault();
+      const name = document.getElementById('subjectName').value.trim();
+      const h = parseInt(document.getElementById('subTargetH').value) || 0;
+      const m = parseInt(document.getElementById('subTargetM').value) || 0;
+      const s = parseInt(document.getElementById('subTargetS').value) || 0;
+
+      const totalTargetSec = h * 3600 + m * 60 + s;
+
+      if (!name) return;
+      if (totalTargetSec <= 0) {
+        alert('목표 시간을 1초 이상 설정해 주세요.');
+        return;
+      }
+
+      subjects.push({
+        id: Date.now().toString(),
+        name,
+        targetSeconds: totalTargetSec,
+        elapsedSeconds: 0,
+        achievedTriggered: false
+      });
+
+      saveData(DB_KEYS.SUBJECTS, subjects);
+      renderSubjects();
+      e.target.reset();
+      document.getElementById('subTargetH').value = 3;
+      document.getElementById('subTargetM').value = 0;
+      document.getElementById('subTargetS').value = 0;
+    }
+
+    function toggleSubjectTimer(id) {
+      if (activeSubjectId === id) {
+        clearInterval(subjectTimer);
+        activeSubjectId = null;
+      } else {
+        if (subjectTimer) clearInterval(subjectTimer);
+        activeSubjectId = id;
+
+        subjectTimer = setInterval(() => {
+          const sub = subjects.find(s => s.id === activeSubjectId);
+          if (sub) {
+            sub.elapsedSeconds++;
             
-            // 탭 활성화 클래스 처리
-            document.getElementById('tab-' + parent + '-list').classList.toggle('active', type === 'list');
-            document.getElementById('tab-' + parent + '-new').classList.toggle('active', type === 'new');
-            
-            if(type === 'new' && parent === 'notes' && !document.getElementById('edit-note-id').value) resetNoteForm();
-        }
-
-        // --- 플래너 ---
-        let viewDate = new Date();
-        let selKey = null;
-        function changeMonth(v) { viewDate.setMonth(viewDate.getMonth() + v); initCal(); }
-        function initCal() {
-            const grid = document.getElementById('calendar-grid');
-            document.querySelectorAll('.calendar-day, .calendar-day-empty').forEach(e => e.remove());
-            const year = viewDate.getFullYear(), month = viewDate.getMonth();
-            document.getElementById('calendar-month-year').innerText = `${year}년 ${month + 1}월`;
-            const first = new Date(year, month, 1).getDay(), last = new Date(year, month + 1, 0).getDate();
-            for(let i=0; i<first; i++) grid.appendChild(document.createElement('div')).className='calendar-day-empty';
-            for(let d=1; d<=last; d++) {
-                const day = document.createElement('div');
-                const key = `${year}-${month+1}-${d}`;
-                day.className = 'calendar-day';
-                day.innerText = d;
-                if(db_plans[key]) day.classList.add('has-content');
-                if(new Date().toDateString() === new Date(year, month, d).toDateString()) day.classList.add('today');
-                day.onclick = () => {
-                    const area = document.getElementById('plan-input-area');
-                    if(selKey === key) area.style.display = area.style.display==='none'?'block':'none';
-                    else {
-                        document.querySelectorAll('.calendar-day').forEach(el=>el.classList.remove('selected'));
-                        day.classList.add('selected'); selKey = key; area.style.display = 'block';
-                    }
-                    document.getElementById('selected-date-label').innerText = `${month+1}월 ${d}일 계획`;
-                    document.getElementById('day-plan').value = db_plans[key] || "";
-                };
-                grid.appendChild(day);
-            }
-        }
-        function savePlan() {
-            db_plans[selKey] = document.getElementById('day-plan').value;
-            localStorage.setItem('plans', JSON.stringify(db_plans));
-            alert("저장되었습니다."); initCal();
-        }
-
-        // --- 노트 로직 ---
-        function resetNoteForm() {
-            document.getElementById('edit-note-id').value = "";
-            document.getElementById('n-title').value = "";
-            document.getElementById('n-key').value = "";
-            document.getElementById('n-con').value = "";
-            document.getElementById('curr-chars').innerText = "0";
-            document.getElementById('note-save-btn').innerText = "노트 저장";
-        }
-
-        function saveNote() {
-            const id = document.getElementById('edit-note-id').value;
-            const noteData = {
-                id: id ? Number(id) : Date.now(),
-                cat: document.getElementById('n-cat').value,
-                title: document.getElementById('n-title').value,
-                key: document.getElementById('n-key').value,
-                con: document.getElementById('n-con').value
-            };
-
-            if(id) {
-                const index = db_notes.findIndex(n => n.id === Number(id));
-                db_notes[index] = noteData;
-            } else {
-                db_notes.push(noteData);
+            if (sub.elapsedSeconds >= sub.targetSeconds && !sub.achievedTriggered) {
+              sub.achievedTriggered = true;
+              triggerConfetti();
             }
 
-            localStorage.setItem('notes', JSON.stringify(db_notes));
-            alert("저장되었습니다.");
-            resetNoteForm();
-            toggleSub('notes', 'list');
-            renderNotes();
-        }
+            saveData(DB_KEYS.SUBJECTS, subjects);
+            renderSubjects();
+          }
+        }, 1000);
+      }
+      renderSubjects();
+    }
 
-        function renderNotes() {
-            const listArea = document.getElementById('notes-list-page');
-            listArea.innerHTML = db_notes.length ? "" : "<p>노트가 없습니다.</p>";
-            db_notes.forEach(n => {
-                const card = document.createElement('div');
-                card.className = 'note-card';
-                card.innerHTML = `
-                    <strong>[${n.cat}] ${n.title}</strong><br>
-                    <small>키워드: ${n.key}</small>
-                    <div id="con-${n.id}" class="note-content-view">${n.con}</div>
-                    <div style="margin-top:10px;">
-                        <button class="btn-small" onclick="toggleNote(${n.id}, this)">내용 보기</button>
-                        <button class="btn-small btn-edit" onclick="editNote(${n.id})">수정</button>
-                        <button class="btn-small btn-del" onclick="deleteItem('notes', ${n.id})">삭제</button>
-                    </div>
-                `;
-                listArea.appendChild(card);
-            });
+    function resetSubjectTimer(id) {
+      if (confirm('해당 과목의 누적 공부 시간을 00:00:00으로 초기화하시겠습니까?')) {
+        const sub = subjects.find(s => s.id === id);
+        if (sub) {
+          sub.elapsedSeconds = 0;
+          sub.achievedTriggered = false;
+          saveData(DB_KEYS.SUBJECTS, subjects);
+          renderSubjects();
         }
+      }
+    }
 
-        function toggleNote(id, btn) {
-            const con = document.getElementById('con-' + id);
-            const isHidden = con.style.display === 'none' || con.style.display === '';
-            con.style.display = isHidden ? 'block' : 'none';
-            btn.innerText = isHidden ? '내용 닫기' : '내용 보기';
+    function deleteSubject(id) {
+      if (confirm('이 과목을 삭제하시겠습니까? 기록된 시간도 함께 삭제됩니다.')) {
+        if (activeSubjectId === id) {
+          clearInterval(subjectTimer);
+          activeSubjectId = null;
         }
+        subjects = subjects.filter(s => s.id !== id);
+        saveData(DB_KEYS.SUBJECTS, subjects);
+        renderSubjects();
+      }
+    }
 
-        function editNote(id) {
-            const n = db_notes.find(note => note.id === id);
-            document.getElementById('edit-note-id').value = n.id;
-            document.getElementById('n-cat').value = n.cat;
-            document.getElementById('n-title').value = n.title;
-            document.getElementById('n-key').value = n.key;
-            document.getElementById('n-con').value = n.con;
-            document.getElementById('curr-chars').innerText = n.con.length;
-            document.getElementById('note-save-btn').innerText = "수정 완료";
-            toggleSub('notes', 'new');
-        }
+    /* ==========================================
+       10. 스톱워치 & 계수기 기능 (검색창 추가)
+       ========================================== */
+    // 스톱워치
+    let swInterval = null;
+    let swStartTime = 0;
+    let swElapsedTime = 0;
+    let isSwRunning = false;
+    let swLaps = loadData(DB_KEYS.SW_LAPS);
+    let isLapsVisible = true;
 
-        // --- 퀴즈 로직 ---
-        function saveQuiz() {
-            const q = { id: Date.now(), title: document.getElementById('q-set-title').value, text: document.getElementById('q-text').value, opts: [document.getElementById('q-o1').value, document.getElementById('q-o2').value, document.getElementById('q-o3').value, document.getElementById('q-o4').value, document.getElementById('q-o5').value], ans: document.getElementById('q-ans').value };
-            db_quiz.push(q); localStorage.setItem('quizzes', JSON.stringify(db_quiz));
-            alert("퀴즈 저장됨"); toggleSub('quiz', 'list'); renderQuizzes();
-        }
-        function renderQuizzes() {
-            const list = document.getElementById('quiz-list-page');
-            list.innerHTML = db_quiz.length ? "" : "저장된 퀴즈가 없습니다.";
-            db_quiz.forEach(q => {
-                const item = document.createElement('div');
-                item.className = 'note-card';
-                item.innerHTML = `<strong>${q.title}</strong><p>${q.text}</p><button class="btn-small btn-edit" onclick="startQuiz(${q.id})">풀기</button><button class="btn-small btn-del" onclick="deleteItem('quiz', ${q.id})">삭제</button>`;
-                list.appendChild(item);
-            });
-        }
-        function startQuiz(id) {
-            const q = db_quiz.find(i => i.id === id);
-            const area = document.getElementById('quiz-solve-page');
-            document.getElementById('quiz-list-page').style.display = 'none';
-            area.style.display = 'block';
-            area.innerHTML = `<h3>${q.title}</h3><p>${q.text}</p>` + q.opts.map((o, i) => `<button onclick="checkAns(${q.id}, ${i+1})" style="background:#fff; color:#333; border:1px solid #ddd; margin-bottom:5px; text-align:left; width:100%; padding:10px;">${i+1}. ${o}</button>`).join('') + `<button onclick="toggleSub('quiz','list')" style="background:#636e72;">취소</button>`;
-        }
-        function checkAns(id, user) {
-            const q = db_quiz.find(i => i.id === id);
-            if(user == q.ans) alert("정답입니다! 🎉");
-            else alert(`틀렸습니다. 정답은 ${q.ans}번입니다.`);
-            toggleSub('quiz', 'list');
-        }
+    function updateSwDisplay() {
+      const totalMs = swElapsedTime;
+      const ms = Math.floor((totalMs % 1000) / 10);
+      const totalSec = Math.floor(totalMs / 1000);
+      const s = totalSec % 60;
+      const m = Math.floor(totalSec / 60) % 60;
+      const h = Math.floor(totalSec / 3600);
 
-        function deleteItem(type, id) {
-            if(!confirm("삭제하시겠습니까?")) return;
-            if(type==='notes') { db_notes = db_notes.filter(i=>i.id!==id); localStorage.setItem('notes', JSON.stringify(db_notes)); renderNotes(); }
-            else { db_quiz = db_quiz.filter(i=>i.id!==id); localStorage.setItem('quizzes', JSON.stringify(db_quiz)); renderQuizzes(); }
-        }
+      document.getElementById('swDisplay').innerText = 
+        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+    }
 
-        // --- 타이머 ---
-        let timerInterval;
-        let isRunning = false;
-        function toggleTimer() {
-            const btn = document.getElementById('timer-btn');
-            if (!isRunning) {
-                let h = parseInt(document.getElementById('timer-hour').value) || 0;
-                let m = parseInt(document.getElementById('timer-min').value) || 0;
-                let totalSec = (Math.min(h, 2) * 3600) + (m * 60);
-                if (totalSec <= 0) return;
-                isRunning = true; btn.innerText = "정지";
-                timerInterval = setInterval(() => {
-                    totalSec--; updateTimerUI(totalSec);
-                    if (totalSec <= 0) { clearInterval(timerInterval); alert("시간 종료!"); isRunning = false; btn.innerText = "타이머 시작"; }
-                }, 1000);
-            } else { clearInterval(timerInterval); isRunning = false; btn.innerText = "타이머 시작"; }
-        }
-        function updateTimerUI(sec) {
-            const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-            document.getElementById('timer-display').innerText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-        }
+    function toggleStopwatch() {
+      const btn = document.getElementById('swStartBtn');
+      if (isSwRunning) {
+        clearInterval(swInterval);
+        isSwRunning = false;
+        btn.innerText = '시작';
+      } else {
+        isSwRunning = true;
+        btn.innerText = '일시정지';
+        swStartTime = Date.now() - swElapsedTime;
+        swInterval = setInterval(() => {
+          swElapsedTime = Date.now() - swStartTime;
+          updateSwDisplay();
+        }, 10);
+      }
+    }
 
-        window.onload = () => { initCal(); renderNotes(); renderQuizzes(); };
-    </script>
+    function recordLap() {
+      if (swElapsedTime === 0) return;
+      const displayStr = document.getElementById('swDisplay').innerText;
+      const lapNum = swLaps.length + 1;
+      swLaps.unshift({
+        id: Date.now().toString(),
+        title: `기록 #${lapNum}`,
+        time: displayStr
+      });
+      saveData(DB_KEYS.SW_LAPS, swLaps);
+      renderSwLaps();
+    }
+
+    function toggleLapsVisible() {
+      isLapsVisible = !isLapsVisible;
+      const lapsContainer = document.getElementById('swLaps');
+      const btn = document.getElementById('toggleLapsBtn');
+
+      if (isLapsVisible) {
+        lapsContainer.style.display = 'block';
+        btn.innerText = '기록 접기';
+      } else {
+        lapsContainer.style.display = 'none';
+        btn.innerText = '기록 보기';
+      }
+    }
+
+    function renderSwLaps() {
+      const container = document.getElementById('swLaps');
+      const query = (document.getElementById('swLapSearchInput')?.value || '').toLowerCase().trim();
+      container.innerHTML = '';
+
+      const filteredLaps = swLaps.filter(lap => !query || lap.title.toLowerCase().includes(query));
+
+      if (filteredLaps.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">검색 결과 또는 기록된 랩 타임이 없습니다.</p>';
+        return;
+      }
+
+      filteredLaps.forEach((lap) => {
+        const item = document.createElement('div');
+        item.className = 'lap-item';
+        item.innerHTML = `
+          <div id="lap-title-area-${lap.id}" style="display:flex; align-items:center; gap:5px;">
+            <span ondblclick="editLapTitle('${lap.id}')" title="더블클릭하여 수정">${escapeHtml(lap.title)}</span>
+            <button class="btn btn-secondary btn-sm" style="padding:1px 4px; font-size:0.7rem;" onclick="editLapTitle('${lap.id}')">수정</button>
+          </div>
+          <span>${lap.time}</span>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function editLapTitle(lapId) {
+      const lap = swLaps.find(l => l.id === lapId);
+      if (!lap) return;
+
+      const area = document.getElementById(`lap-title-area-${lapId}`);
+      area.innerHTML = `
+        <input type="text" class="form-control" id="edit-lap-input-${lapId}" value="${escapeHtml(lap.title)}" style="padding:2px 5px; font-size:0.85rem; width:120px;">
+        <button class="btn btn-success btn-sm" style="padding:1px 5px; font-size:0.7rem;" onclick="saveLapTitle('${lapId}')">저장</button>
+      `;
+    }
+
+    function saveLapTitle(lapId) {
+      const input = document.getElementById(`edit-lap-input-${lapId}`);
+      if (!input) return;
+      const newTitle = input.value.trim();
+      if (!newTitle) return;
+
+      const lap = swLaps.find(l => l.id === lapId);
+      if (lap) {
+        lap.title = newTitle;
+        saveData(DB_KEYS.SW_LAPS, swLaps);
+        renderSwLaps();
+      }
+    }
+
+    function resetStopwatch() {
+      clearInterval(swInterval);
+      isSwRunning = false;
+      swElapsedTime = 0;
+      swLaps = [];
+      saveData(DB_KEYS.SW_LAPS, swLaps);
+      document.getElementById('swStartBtn').innerText = '시작';
+      updateSwDisplay();
+      renderSwLaps();
+    }
+
+    // 다중 계수기
+    let counters = loadData(DB_KEYS.COUNTERS);
+
+    function renderCounters() {
+      const container = document.getElementById('countersContainer');
+      const query = (document.getElementById('counterSearchInput')?.value || '').toLowerCase().trim();
+      container.innerHTML = '';
+
+      const filteredCounters = counters.filter(c => !query || c.name.toLowerCase().includes(query));
+
+      if (filteredCounters.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); grid-column:1/-1;">검색 결과 또는 등록된 계수기가 없습니다.</p>';
+        return;
+      }
+
+      filteredCounters.forEach((cnt) => {
+        const card = document.createElement('div');
+        card.className = 'counter-card';
+        card.innerHTML = `
+          <input type="text" class="form-control" value="${escapeHtml(cnt.name)}" placeholder="계수기 이름" onchange="updateCounterName('${cnt.id}', this.value)" style="font-weight:bold;">
+          <div class="counter-value">${cnt.count}</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label style="font-size:0.8rem; color:var(--text-muted); white-space:nowrap;">단위:</label>
+            <input type="number" class="form-control" value="${cnt.step}" min="1" max="10000" oninput="validateCustomInput(this, 10000)" onchange="updateCounterStep('${cnt.id}', this.value)">
+          </div>
+          <div style="display:flex; gap:5px; margin-top:5px;">
+            <button class="btn btn-primary" style="flex:1;" onclick="changeCounterValue('${cnt.id}', 1)">+</button>
+            <button class="btn btn-secondary" style="flex:1;" onclick="changeCounterValue('${cnt.id}', -1)">-</button>
+          </div>
+          <div style="display:flex; gap:5px; margin-top:5px;">
+            <button class="btn btn-warning btn-sm" style="flex:1;" onclick="resetCounterValue('${cnt.id}')">초기화</button>
+            <button class="btn btn-danger btn-sm" style="flex:1;" onclick="deleteCounter('${cnt.id}')">삭제</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function addCounter() {
+      counters.push({
+        id: Date.now().toString(),
+        name: `계수기 #${counters.length + 1}`,
+        count: 0,
+        step: 1
+      });
+      saveData(DB_KEYS.COUNTERS, counters);
+      renderCounters();
+    }
+
+    function updateCounterName(id, val) {
+      const cnt = counters.find(c => c.id === id);
+      if (cnt) {
+        cnt.name = val;
+        saveData(DB_KEYS.COUNTERS, counters);
+      }
+    }
+
+    function updateCounterStep(id, val) {
+      const cnt = counters.find(c => c.id === id);
+      if (cnt) {
+        let stepNum = parseInt(val, 10) || 1;
+        if (stepNum > 10000) stepNum = 10000;
+        if (stepNum < 1) stepNum = 1;
+        cnt.step = stepNum;
+        saveData(DB_KEYS.COUNTERS, counters);
+        renderCounters();
+      }
+    }
+
+    function changeCounterValue(id, direction) {
+      const cnt = counters.find(c => c.id === id);
+      if (cnt) {
+        let nextVal = cnt.count + (direction * cnt.step);
+        if (nextVal > 10000) nextVal = 10000;
+        if (nextVal < 0) nextVal = 0;
+        cnt.count = nextVal;
+        saveData(DB_KEYS.COUNTERS, counters);
+        renderCounters();
+      }
+    }
+
+    function resetCounterValue(id) {
+      const cnt = counters.find(c => c.id === id);
+      if (cnt) {
+        cnt.count = 0;
+        saveData(DB_KEYS.COUNTERS, counters);
+        renderCounters();
+      }
+    }
+
+    function deleteCounter(id) {
+      if (confirm('이 계수기를 삭제하시겠습니까?')) {
+        counters = counters.filter(c => c.id !== id);
+        saveData(DB_KEYS.COUNTERS, counters);
+        renderCounters();
+      }
+    }
+
+    /* HTML 문자열 이스케이프 유틸리티 (XSS 방지) */
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    /* ==========================================
+       앱 초기화 실행
+       ========================================== */
+    window.onload = function() {
+      loadTheme();
+      renderMotto();
+      renderNotes();
+      renderDDays();
+      renderGoals();
+      updatePomoDisplay();
+      updateCustomDisplay();
+      renderFlashcard();
+      renderVocabBooks();
+      renderSubjects();
+      renderSwLaps();
+      renderCounters();
+    };
+// =================================================================
+// 3단계: 로그인, 가시성 토글, 데이터 연동 핵심 자바스크립트 뇌
+// =================================================================
+
+// 1. 비밀번호 눈 모양 토글 기능
+document.getElementById('toggle-password').addEventListener('click', function() {
+  const pwInput = document.getElementById('auth-password');
+  if (pwInput.type === 'password') {
+    pwInput.type = 'text';
+    this.textContent = '👁️‍🗨️';
+  } else {
+    pwInput.type = 'password';
+    this.textContent = '👁️';
+  }
+});
+
+// 2. 로그인 세션 영구 유지 설정
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+// 3. 실시간 계정 상태 감지 및 데이터 자동 로드
+let currentUser = null;
+let isGuest = false;
+
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    currentUser = user;
+    isGuest = false;
+    document.getElementById('login-wall').style.display = 'none';
+    updateAccountDisplay(`👤 ${user.email} 로그인 중`);
+    await loadUserDataFromServer(user.uid);
+  } else if (localStorage.getItem('guest_mode') === 'true') {
+    isGuest = true;
+    document.getElementById('login-wall').style.display = 'none';
+    updateAccountDisplay("현재 게스트 모드로 사용 중");
+  } else {
+    document.getElementById('login-wall').style.display = 'flex';
+  }
+});
+
+// 4. 회원가입 버튼 클릭 시 데이터베이스 방 생성
+document.getElementById('btn-signup').addEventListener('click', async () => {
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, password);
+    // 빈 데이터베이스 규칙 에러 원천 차단용 첫 방(초기 데이터) 자동 생성
+    await db.collection('users').doc(cred.user.uid).set({
+      notes: [], ddays: [], todos: [], flashcards: [], words: [], counters: []
+    });
+    alert('회원가입 및 데이터 공간 생성 성공!');
+  } catch (err) { alert('회원가입 실패: ' + err.message); }
+});
+
+// 5. 로그인 버튼 클릭
+document.getElementById('btn-login').addEventListener('click', () => {
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  auth.signInWithEmailAndPassword(email, password).catch(err => alert('로그인 실패: ' + err.message));
+});
+
+// 6. 게스트 버튼 클릭
+document.getElementById('btn-guest').addEventListener('click', () => {
+  localStorage.setItem('guest_mode', 'true');
+  location.reload();
+});
+
+// 7. 설정 탭 내 계정 표시 및 로그아웃 버튼 구현
+function updateAccountDisplay(text) {
+  let settingTab = document.getElementById('setting-tab-content') || document.getElementById('setting-tab') || document.querySelector('.tab-content') || document.body;
+  let infoDiv = document.getElementById('account-info-status');
+  
+  if (!infoDiv) {
+    infoDiv = document.createElement('div');
+    infoDiv.id = 'account-info-status';
+    infoDiv.style = 'padding:20px; margin-bottom:20px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; color:inherit; text-align:left;';
+    settingTab.insertBefore(infoDiv, settingTab.firstChild);
+  }
+  
+  infoDiv.innerHTML = `
+    <div style="font-size:16px; font-weight:bold; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+      <span>${text}</span>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button id="btn-logout-custom" style="padding:10px 20px; background:#e74c3c; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold; transition:0.2s;">로그아웃</button>
+      <button id="btn-clear-custom" style="padding:10px 20px; background:#7f8c8d; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold; transition:0.2s;">모든 데이터 초기화</button>
+    </div>
+  `;
+
+  document.getElementById('btn-logout-custom').onclick = function() {
+    if (confirm('정말 로그아웃하시겠습니까?')) {
+      localStorage.removeItem('guest_mode');
+      auth.signOut().then(() => location.reload());
+    }
+  };
+
+  document.getElementById('btn-clear-custom').onclick = function() {
+    if (confirm('⚠️ 경고: 이 작업은 되돌릴 수 없습니다.\\n저장된 모든 공부 기록, 노트, 단어장 데이터가 영구 삭제됩니다.\\n정말 초기화하시겠습니까?')) {
+      if (currentUser && !isGuest) {
+        db.collection('users').doc(currentUser.uid).set({
+          notes: [], ddays: [], todos: [], flashcards: [], words: [], counters: []
+        }).then(() => {
+          localStorage.clear();
+          alert('서버와 로컬의 모든 데이터가 초기화되었습니다.');
+          location.reload();
+        }).catch(e => alert('초기화 실패: ' + e.message));
+      } else {
+        localStorage.clear();
+        alert('로컬 데이터가 완전히 초기화되었습니다.');
+        location.reload();
+      }
+    }
+  };
+}
+
+// 8. 파이어베이스 서버 데이터 연동 다리 건설
+async function loadUserDataFromServer(uid) {
+  try {
+    const docRef = db.collection('users').doc(uid);
+    const docSnap = await docRef.get();
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      // 기존 study6의 변수명에 맞춰 서버 데이터를 이식합니다.
+      if (data.notes) { notes = data.notes; if(typeof renderNotes === 'function') renderNotes(); }
+      if (data.ddays) { ddays = data.ddays; if(typeof renderDDays === 'function') renderDDays(); }
+      if (data.todos) { todos = data.todos; if(typeof renderTodos === 'function') renderTodos(); }
+      if (data.flashcards) { flashcards = data.flashcards; if(typeof renderFlashcards === 'function') renderFlashcards(); }
+      if (data.words) { words = data.words; if(typeof renderWords === 'function') renderWords(); }
+      if (data.counters) { counters = data.counters; if(typeof renderCounters === 'function') renderCounters(); }
+      console.log("서버에서 모든 공부 기록을 안전하게 불러왔습니다!", data);
+    }
+  } catch (e) {
+    console.error("데이터 로드 중 에러 발생:", e);
+  }
+}
+
+// 9. 기존 저장 함수들을 서버 업로드용으로 가로채기 (강제 동기화)
+const originalSaveAllData = window.saveAllData; 
+window.saveAllData = function() {
+  if (typeof originalSaveAllData === 'function') originalSaveAllData();
+  if (currentUser && !isGuest) {
+    db.collection('users').doc(currentUser.uid).set({
+      notes: typeof notes !== 'undefined' ? notes : [],
+      ddays: typeof ddays !== 'undefined' ? ddays : [],
+      todos: typeof todos !== 'undefined' ? todos : [],
+      flashcards: typeof flashcards !== 'undefined' ? flashcards : [],
+      words: typeof words !== 'undefined' ? words : [],
+      counters: typeof counters !== 'undefined' ? counters : []
+    }).then(() => console.log("실시간 변경사항이 서버에 저장되었습니다."))
+      .catch(e => console.error("서버 저장 실패:", e));
+  }
+};
+
+  </script>
 </body>
 </html>
-
