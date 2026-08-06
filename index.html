@@ -888,21 +888,21 @@
           <input type="hidden" id="noteEditIndex" value="">
           <div class="grid-2">
             <div class="form-group">
-              <label>제목</label>
-              <input type="text" id="noteTitle" class="form-control" placeholder="노트 제목 입력" required>
+              <label>제목 (미입력 시 날짜로 자동 생성)</label>
+              <input type="text" id="noteTitle" class="form-control" placeholder="노트 제목 입력 (선택)">
             </div>
             <div class="form-group">
-              <label>소제목</label>
-              <input type="text" id="noteSubtitle" class="form-control" placeholder="소제목 입력" required>
+              <label>소제목 (선택)</label>
+              <input type="text" id="noteSubtitle" class="form-control" placeholder="소제목 입력 (선택)">
             </div>
           </div>
           <div class="form-group">
-            <label>핵심 키워드</label>
-            <input type="text" id="noteKeywords" class="form-control" placeholder="쉼표(,)로 구분하여 입력 (예: 개발, 자바스크립트)" required>
+            <label>핵심 키워드 (선택)</label>
+            <input type="text" id="noteKeywords" class="form-control" placeholder="쉼표(,)로 구분하여 입력 (예: 개발, 자바스크립트)">
           </div>
           <div class="form-group">
             <label>상세 내용</label>
-            <textarea id="noteContent" class="form-control" placeholder="노트 내용 작성..." required></textarea>
+            <textarea id="noteContent" class="form-control" placeholder="노트 내용 작성..."></textarea>
           </div>
           <button type="submit" id="noteSubmitBtn" class="btn btn-primary">노트 저장</button>
           <button type="button" id="noteCancelBtn" class="btn btn-secondary" style="display:none;" onclick="resetNoteForm()">취소</button>
@@ -1215,6 +1215,62 @@
           </div>
         </div>
       </div>
+
+      <!-- 신규: 오늘의 학습 통계 -->
+      <div class="card">
+        <h2 class="card-title">오늘의 학습 통계</h2>
+        <div style="text-align:center; padding: 10px 0;">
+          <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">오늘의 총 학습 시간</div>
+          <div id="todayStudyTimeDisplay" style="font-size:1.8rem; font-weight:800; color:var(--accent); font-family:'Courier New', Courier, monospace;">00시간 00분 00초</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">듀얼 타이머, 과목별 타이머, 스톱워치 사용 시간이 자동으로 합산됩니다.</div>
+        </div>
+      </div>
+
+      <!-- 신규: 사용자 프로필 -->
+      <div class="card">
+        <h2 class="card-title">사용자 프로필</h2>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>이름</label>
+            <input type="text" id="profileName" class="form-control" placeholder="이름 입력">
+          </div>
+          <div class="form-group">
+            <label>생년월일 (YYYY-MM-DD)</label>
+            <input type="date" id="profileBirth" class="form-control" onchange="updateProfileAge()">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>성별</label>
+            <select id="profileGender" class="form-control">
+              <option value="">선택 안 함</option>
+              <option value="남성">남성</option>
+              <option value="여성">여성</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>진로희망</label>
+            <input type="text" id="profileCareer" class="form-control" placeholder="예: 소프트웨어 엔지니어">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>상태메시지</label>
+          <input type="text" id="profileStatus" class="form-control" placeholder="오늘의 각오를 적어보세요">
+        </div>
+        <div id="profileAgeDisplay" style="font-size:0.9rem; font-weight:600; color:var(--primary); margin-bottom:12px;">만 나이: -</div>
+        <button class="btn btn-primary" onclick="saveProfile()">프로필 저장</button>
+      </div>
+
+      <!-- 신규: 데이터 백업 및 복원 -->
+      <div class="card">
+        <h2 class="card-title">데이터 백업 및 복원</h2>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-success" onclick="backupData()">데이터 백업 (다운로드)</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('restoreFileInput').click()">데이터 복원</button>
+          <input type="file" id="restoreFileInput" accept="application/json" style="display:none;" onchange="restoreData(this)">
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;">백업 파일명은 프로필에 입력한 이름을 따라 자동으로 지정됩니다 (미입력 시 guest.json).</p>
+      </div>
     </section>
   </main>
 
@@ -1232,7 +1288,9 @@
       THEME: 'study_app_theme',
       COUNTERS: 'study_app_counters',
       MOTTO: 'study_app_motto',
-      SW_LAPS: 'study_app_sw_laps'
+      SW_LAPS: 'study_app_sw_laps',
+      PROFILE: 'study_app_profile',
+      STUDY_STATS: 'study_app_study_stats'
     };
 
     function loadData(key) {
@@ -1339,9 +1397,24 @@
     /* ==========================================
        공통 알림 및 유틸리티
        ========================================== */
+    let sharedAudioCtx = null;
+    function unlockAudioContext() {
+      try {
+        if (!sharedAudioCtx) {
+          sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (sharedAudioCtx.state === 'suspended') {
+          sharedAudioCtx.resume();
+        }
+      } catch (e) {
+        console.log('Audio API not supported');
+      }
+    }
+
     function playAlarm() {
       try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        unlockAudioContext();
+        const audioCtx = sharedAudioCtx;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
@@ -1362,6 +1435,145 @@
       const m = Math.floor((seconds % 3600) / 60);
       const s = seconds % 60;
       return `${String(h).padStart(2, '0')}시간 ${String(m).padStart(2, '0')}분 ${String(s).padStart(2, '0')}초`;
+    }
+
+    /* ==========================================
+       신규: 사용자 프로필
+       ========================================== */
+    function loadProfile() {
+      const raw = localStorage.getItem(DB_KEYS.PROFILE);
+      return raw ? JSON.parse(raw) : { name: '', birth: '', gender: '', career: '', status: '' };
+    }
+    let userProfile = loadProfile();
+
+    function renderProfile() {
+      document.getElementById('profileName').value = userProfile.name || '';
+      document.getElementById('profileBirth').value = userProfile.birth || '';
+      document.getElementById('profileGender').value = userProfile.gender || '';
+      document.getElementById('profileCareer').value = userProfile.career || '';
+      document.getElementById('profileStatus').value = userProfile.status || '';
+      updateProfileAge();
+    }
+
+    function saveProfile() {
+      userProfile = {
+        name: document.getElementById('profileName').value.trim(),
+        birth: document.getElementById('profileBirth').value,
+        gender: document.getElementById('profileGender').value,
+        career: document.getElementById('profileCareer').value.trim(),
+        status: document.getElementById('profileStatus').value.trim()
+      };
+      localStorage.setItem(DB_KEYS.PROFILE, JSON.stringify(userProfile));
+      updateProfileAge();
+      alert('프로필이 저장되었습니다.');
+    }
+
+    function updateProfileAge() {
+      const birthVal = document.getElementById('profileBirth').value;
+      const ageEl = document.getElementById('profileAgeDisplay');
+      if (!birthVal) {
+        ageEl.innerText = '만 나이: -';
+        return;
+      }
+      const birthDate = new Date(birthVal);
+      if (isNaN(birthDate.getTime())) {
+        ageEl.innerText = '만 나이: -';
+        return;
+      }
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      ageEl.innerText = `만 나이: ${age}세`;
+    }
+
+    /* ==========================================
+       신규: 오늘의 총 학습 시간 통계
+       ========================================== */
+    function getTodayDateStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function loadStudyStats() {
+      const raw = localStorage.getItem(DB_KEYS.STUDY_STATS);
+      let stats = raw ? JSON.parse(raw) : null;
+      const today = getTodayDateStr();
+      if (!stats || stats.date !== today) {
+        stats = { date: today, seconds: 0 };
+        localStorage.setItem(DB_KEYS.STUDY_STATS, JSON.stringify(stats));
+      }
+      return stats;
+    }
+    let studyStats = loadStudyStats();
+
+    function addStudySeconds(sec) {
+      if (!sec || sec <= 0) return;
+      const today = getTodayDateStr();
+      if (studyStats.date !== today) {
+        studyStats = { date: today, seconds: 0 };
+      }
+      studyStats.seconds += sec;
+      localStorage.setItem(DB_KEYS.STUDY_STATS, JSON.stringify(studyStats));
+      renderStudyStats();
+    }
+
+    function renderStudyStats() {
+      const el = document.getElementById('todayStudyTimeDisplay');
+      if (el) el.innerText = formatTime(studyStats.seconds);
+    }
+
+    /* ==========================================
+       신규: 데이터 백업 및 복원
+       ========================================== */
+    function backupData() {
+      const backupObj = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        backupObj[key] = localStorage.getItem(key);
+      }
+      const rawName = (userProfile.name || '').trim();
+      const safeName = rawName.replace(/[\\/:*?"<>|]/g, '').trim();
+      const fileName = safeName ? `${safeName}.json` : 'guest.json';
+
+      const blob = new Blob([JSON.stringify(backupObj, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function restoreData(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+
+      if (!confirm('현재 데이터가 백업 파일 내용으로 덮어써집니다. 계속하시겠습니까?')) {
+        input.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          localStorage.clear();
+          Object.keys(data).forEach(key => {
+            localStorage.setItem(key, data[key]);
+          });
+          alert('복원이 완료되었습니다. 화면을 새로고침합니다.');
+          location.reload();
+        } catch (err) {
+          alert('올바른 백업 파일이 아닙니다.');
+        }
+      };
+      reader.readAsText(file);
+      input.value = '';
     }
 
     /* ==========================================
@@ -1539,10 +1751,22 @@
     function saveNote(e) {
       e.preventDefault();
       const editIndex = document.getElementById('noteEditIndex').value;
-      const title = document.getElementById('noteTitle').value.trim();
+      let title = document.getElementById('noteTitle').value.trim();
       const subtitle = document.getElementById('noteSubtitle').value.trim();
       const keywords = document.getElementById('noteKeywords').value.trim();
       const content = document.getElementById('noteContent').value.trim();
+
+      if (!content) {
+        alert('내용을 입력해주세요');
+        return;
+      }
+
+      if (!title) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const todayCount = notes.filter(n => n.title.startsWith(dateStr)).length;
+        title = `${dateStr} (${todayCount + 1})`;
+      }
 
       if (editIndex !== '') {
         notes[parseInt(editIndex)] = { title, subtitle, keywords, content };
@@ -1995,11 +2219,13 @@
         isPomoRunning = false;
         btn.innerText = '시작';
       } else {
+        unlockAudioContext();
         isPomoRunning = true;
         btn.innerText = '일시정지';
         pomoTimer = setInterval(() => {
           if (pomoTime > 0) {
             pomoTime--;
+            addStudySeconds(1);
             updatePomoDisplay();
           } else {
             clearInterval(pomoTimer);
@@ -2051,11 +2277,13 @@
           return;
         }
 
+        unlockAudioContext();
         isCustomRunning = true;
         btn.innerText = '일시정지';
         customTimer = setInterval(() => {
           if (customTime > 0) {
             customTime--;
+            addStudySeconds(1);
             updateCustomDisplay();
           } else {
             clearInterval(customTimer);
@@ -2309,11 +2537,14 @@
 
     function nextCard() {
       const activeCards = getFilteredCards();
+      if (activeCards.length === 0) return;
       if (currentCardIndex < activeCards.length - 1) {
         currentCardIndex++;
-        isFlipped = false;
-        renderFlashcard();
+      } else {
+        currentCardIndex = 0;
       }
+      isFlipped = false;
+      renderFlashcard();
     }
 
     /* ==========================================
@@ -2673,6 +2904,7 @@
           const sub = subjects.find(s => s.id === activeSubjectId);
           if (sub) {
             sub.elapsedSeconds++;
+            addStudySeconds(1);
             
             if (sub.elapsedSeconds >= sub.targetSeconds && !sub.achievedTriggered) {
               sub.achievedTriggered = true;
@@ -2718,6 +2950,7 @@
     let swInterval = null;
     let swStartTime = 0;
     let swElapsedTime = 0;
+    let swLastCreditedSec = 0;
     let isSwRunning = false;
     let swLaps = loadData(DB_KEYS.SW_LAPS);
     let isLapsVisible = true;
@@ -2746,6 +2979,11 @@
         swStartTime = Date.now() - swElapsedTime;
         swInterval = setInterval(() => {
           swElapsedTime = Date.now() - swStartTime;
+          const currentWholeSec = Math.floor(swElapsedTime / 1000);
+          if (currentWholeSec > swLastCreditedSec) {
+            addStudySeconds(currentWholeSec - swLastCreditedSec);
+            swLastCreditedSec = currentWholeSec;
+          }
           updateSwDisplay();
         }, 10);
       }
@@ -2833,6 +3071,7 @@
       clearInterval(swInterval);
       isSwRunning = false;
       swElapsedTime = 0;
+      swLastCreditedSec = 0;
       swLaps = [];
       saveData(DB_KEYS.SW_LAPS, swLaps);
       document.getElementById('swStartBtn').innerText = '시작';
@@ -2965,6 +3204,8 @@
       renderSubjects();
       renderSwLaps();
       renderCounters();
+      renderProfile();
+      renderStudyStats();
     };
   </script>
 </body>
