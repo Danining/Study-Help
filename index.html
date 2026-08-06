@@ -834,12 +834,382 @@
       .calc-grid { grid-template-columns: repeat(4, 1fr); }
       .btn-calc-eq { grid-column: span 1; }
     }
+
+    /* ==========================================
+       신규 기능: 단어장 공유 버튼
+       ========================================== */
+    .vocab-book-header .vocab-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    /* ==========================================
+       신규 기능: 목표 공부 시간 & 학습 기록 달력
+       ========================================== */
+    .goal-time-inputs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      max-width: 420px;
+    }
+    .goal-time-inputs .form-group label { text-align: center; }
+    .goal-time-inputs input { text-align: center; font-weight: 700; }
+    .goal-current-display {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+    }
+    .study-log-tag {
+      font-size: 0.7rem;
+      background: var(--success);
+      color: white;
+      border-radius: 3px;
+      padding: 1px 4px;
+      margin-top: 3px;
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .study-log-tag.goal-met {
+      background: var(--warning);
+      color: #333;
+      font-weight: 700;
+    }
+
+    /* ==========================================
+       신규 기능: 단어시험 모달 & 기록 리스트
+       ========================================== */
+    .exam-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .exam-modal-overlay.open {
+      display: flex;
+    }
+    .exam-modal-box {
+      background: var(--card-bg);
+      color: var(--text);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 600px;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .exam-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .exam-modal-header h3 {
+      color: var(--primary);
+      font-size: 1.2rem;
+    }
+    .exam-word-select-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 4px;
+      border-bottom: 1px dashed var(--border);
+      font-size: 0.9rem;
+    }
+    .exam-question-item {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px dashed var(--border);
+    }
+    .exam-question-item .exam-q-text {
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .exam-question-item.correct { background: rgba(46, 204, 113, 0.08); }
+    .exam-question-item.wrong { background: rgba(231, 76, 60, 0.08); }
+    .exam-result-answer {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+    .exam-record-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px dashed var(--border);
+      flex-wrap: wrap;
+    }
+    .exam-record-item:last-child { border-bottom: none; }
+    .exam-record-info { display: flex; flex-direction: column; gap: 2px; }
+    .exam-record-score { font-weight: 700; color: var(--accent); }
+    .exam-record-actions { display: flex; gap: 6px; }
+
+    /* ==========================================
+       신규 기능: 4단 노트 PDF 저장 / 인쇄
+       ========================================== */
+    #printArea { display: none; }
+
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 15mm;
+      }
+      .print-note-title {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #000;
+        margin-bottom: 6px;
+      }
+      .print-note-subtitle {
+        font-size: 1.1rem;
+        color: #444;
+        margin-bottom: 14px;
+      }
+      .print-note-keywords {
+        display: inline-block;
+        font-size: 0.85rem;
+        color: #000;
+        border: 1px solid #999;
+        border-radius: 4px;
+        padding: 3px 10px;
+        margin-bottom: 18px;
+      }
+      .print-note-content {
+        font-size: 1rem;
+        line-height: 1.9;
+        color: #000;
+        white-space: pre-wrap;
+        border-top: 1px solid #999;
+        padding-top: 16px;
+      }
+      @page { size: A4; margin: 15mm; }
+    }
+
+    /* ==========================================
+       신규: 특별(프리미엄) 테마 3종
+       ========================================== */
+    body.theme-midnight-gold {
+      --bg-color: #0d0d14;
+      --card-bg: #16161f;
+      --primary: #f5d485;
+      --accent: #d4af37;
+      --accent-hover: #b8952f;
+      --text: #f0e6d2;
+      --text-muted: #9a8f7a;
+      --border: #2a2a38;
+    }
+    body.theme-midnight-gold header {
+      background-color: #08080c;
+      color: var(--primary);
+    }
+
+    body.theme-cyberpunk-neon {
+      --bg-color: #0a0014;
+      --card-bg: #150826;
+      --primary: #00fff2;
+      --accent: #ff2fd0;
+      --accent-hover: #d4009f;
+      --text: #e5e5ff;
+      --text-muted: #8888aa;
+      --border: #2e1a4d;
+    }
+    body.theme-cyberpunk-neon header {
+      background-color: #05000a;
+      color: var(--primary);
+    }
+
+    body.theme-minimal-white {
+      --bg-color: #ffffff;
+      --card-bg: #fafafa;
+      --primary: #111111;
+      --accent: #555555;
+      --accent-hover: #333333;
+      --text: #1a1a1a;
+      --text-muted: #888888;
+      --border: #eaeaea;
+    }
+
+    .premium-theme-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .premium-theme-btn {
+      min-width: 150px;
+    }
+    .premium-theme-btn[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .premium-unlocked-badge {
+      font-size: 0.8rem;
+      color: var(--success);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    /* ==========================================
+       신규: 목표 도달률 진행바
+       ========================================== */
+    .goal-progress-wrap {
+      margin-top: 16px;
+    }
+    .goal-progress-text {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-top: 6px;
+      text-align: right;
+    }
+
+    /* ==========================================
+       신규: 성적 기록 탭
+       ========================================== */
+    .grade-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .grade-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .grade-badge {
+      font-size: 0.75rem;
+      background: rgba(52, 152, 219, 0.15);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .grade-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .grade-score {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .grade-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .grade-chart-subject {
+      margin-bottom: 28px;
+    }
+    .grade-chart-subject h4 {
+      color: var(--primary);
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+    .grade-chart-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      height: 170px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 6px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .grade-bar-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 48px;
+      flex-shrink: 0;
+    }
+    .grade-bar-pair {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 130px;
+    }
+    .grade-bar {
+      width: 14px;
+      border-radius: 3px 3px 0 0;
+      transition: height 0.3s ease;
+    }
+    .grade-bar.my-score { background: var(--accent); }
+    .grade-bar.target-score { background: var(--warning); opacity: 0.75; }
+    .grade-bar-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 4px;
+      white-space: nowrap;
+    }
+    .grade-bar-date {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .grade-chart-legend {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .legend-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .legend-dot.my { background: var(--accent); }
+    .legend-dot.target { background: var(--warning); opacity: 0.75; }
+
+    @media (max-width: 768px) {
+      .grade-item { flex-direction: column; align-items: flex-start; }
+      .grade-actions { width: 100%; justify-content: flex-end; }
+      .premium-theme-row { flex-direction: column; align-items: flex-start; }
+    }
   </style>
 </head>
 <body>
 
   <!-- 폭죽 효과용 캔버스 -->
   <canvas id="confettiCanvas"></canvas>
+
+  <!-- 4단 노트 인쇄 전용 영역 (평상시에는 숨김, 인쇄 시에만 노출) -->
+  <div id="printArea"></div>
+
+  <!-- 단어시험 모달 (평상시 숨김) -->
+  <div class="exam-modal-overlay" id="examModalOverlay">
+    <div class="exam-modal-box" id="examModalBox"></div>
+  </div>
 
   <!-- 헤더 & 대시보드 시계 -->
   <header>
@@ -876,6 +1246,7 @@
     <button class="tab-btn" onclick="switchTab(event, 'tab-calc')">계산기</button>
     <button class="tab-btn" onclick="switchTab(event, 'tab-subjects')">과목별 타이머</button>
     <button class="tab-btn" onclick="switchTab(event, 'tab-stopwatch')">스톱워치 & 계수기</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-grades')">성적 기록</button>
     <button class="tab-btn" onclick="switchTab(event, 'tab-settings')">설정</button>
   </nav>
 
@@ -1082,8 +1453,20 @@
       </div>
 
       <div class="card">
-        <h2 class="card-title">단어장 목록</h2>
+        <div class="card-title">
+          <span>단어장 목록</span>
+          <div>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('vocabImportInput').click()">공유 단어장 불러오기</button>
+            <input type="file" id="vocabImportInput" accept="application/json" style="display:none;" onchange="importVocabBookFile(this)">
+          </div>
+        </div>
         <div id="vocabBooksContainer"></div>
+      </div>
+
+      <!-- 신규: 단어시험 기록 리스트 -->
+      <div class="card">
+        <h2 class="card-title">단어시험 기록 리스트</h2>
+        <div id="examRecordsContainer"></div>
       </div>
     </section>
 
@@ -1197,6 +1580,58 @@
     </section>
 
     <!-- 10. 설정 탭 -->
+    <!-- 신규: 성적 기록 및 그래프 추적 탭 -->
+    <section id="tab-grades" class="tab-content">
+      <div class="card">
+        <h2 class="card-title" id="gradeFormTitle">성적 입력</h2>
+        <form id="gradeForm" onsubmit="saveGrade(event)">
+          <input type="hidden" id="gradeEditId" value="">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>시험 종류</label>
+              <select id="gradeType" class="form-control" required>
+                <option value="내신">내신</option>
+                <option value="모의고사">모의고사</option>
+                <option value="수능">수능</option>
+                <option value="자격증">자격증</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>시험 일자</label>
+              <input type="date" id="gradeDate" class="form-control" required>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>과목명</label>
+              <input type="text" id="gradeSubject" class="form-control" placeholder="예: 수학" required>
+            </div>
+            <div class="form-group">
+              <label>내 점수</label>
+              <input type="number" id="gradeMyScore" class="form-control" placeholder="예: 85" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>목표 점수</label>
+            <input type="number" id="gradeTargetScore" class="form-control" placeholder="예: 90" required>
+          </div>
+          <button type="submit" id="gradeSubmitBtn" class="btn btn-primary">성적 저장</button>
+          <button type="button" id="gradeCancelBtn" class="btn btn-secondary" style="display:none;" onclick="resetGradeForm()">취소</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">성적 목록</h2>
+        <div id="gradesContainer"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">성적 추이 (회차별 / 과목별)</h2>
+        <div id="gradeChartContainer"></div>
+      </div>
+    </section>
+
     <section id="tab-settings" class="tab-content">
       <div class="card">
         <h2 class="card-title">앱 설정</h2>
@@ -1216,6 +1651,12 @@
         </div>
       </div>
 
+      <!-- 신규: 광고 시청 연동 특별 테마 3종 -->
+      <div class="card">
+        <h2 class="card-title">특별 테마 (광고 시청으로 24시간 잠금 해제)</h2>
+        <div id="premiumThemeContainer"></div>
+      </div>
+
       <!-- 신규: 오늘의 학습 통계 -->
       <div class="card">
         <h2 class="card-title">오늘의 학습 통계</h2>
@@ -1224,6 +1665,44 @@
           <div id="todayStudyTimeDisplay" style="font-size:1.8rem; font-weight:800; color:var(--accent); font-family:'Courier New', Courier, monospace;">00시간 00분 00초</div>
           <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">듀얼 타이머, 과목별 타이머, 스톱워치 사용 시간이 자동으로 합산됩니다.</div>
         </div>
+      </div>
+
+      <!-- 신규: 목표 공부 시간 설정 -->
+      <div class="card">
+        <h2 class="card-title">목표 공부 시간 설정</h2>
+        <div class="goal-time-inputs">
+          <div class="form-group">
+            <label>시</label>
+            <input type="number" id="goalHourInput" class="form-control" placeholder="시" min="0" max="23" oninput="validateCustomInput(this, 23)">
+          </div>
+          <div class="form-group">
+            <label>분</label>
+            <input type="number" id="goalMinInput" class="form-control" placeholder="분" min="0" max="59" oninput="validateCustomInput(this, 59)">
+          </div>
+          <div class="form-group">
+            <label>초</label>
+            <input type="number" id="goalSecInput" class="form-control" placeholder="초" min="0" max="59" oninput="validateCustomInput(this, 59)">
+          </div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:5px;" onclick="saveDailyGoal()">목표 저장</button>
+        <div class="goal-current-display" id="goalCurrentDisplay">설정된 목표가 없습니다.</div>
+        <div class="goal-progress-wrap">
+          <div class="progress-container" style="height:14px;">
+            <div class="progress-bar" id="goalProgressBar" style="width:0%;"></div>
+          </div>
+          <div class="goal-progress-text" id="goalProgressText">목표 도달률: 0%</div>
+        </div>
+      </div>
+
+      <!-- 신규: 학습 기록 달력 -->
+      <div class="card">
+        <h2 class="card-title">학습 기록 달력</h2>
+        <div class="calendar-header">
+          <button class="btn btn-secondary btn-sm" onclick="changeSettingsCalendarMonth(-1)">&lt; 이전달</button>
+          <h3 id="settingsCalendarMonthTitle">2026년 3월</h3>
+          <button class="btn btn-secondary btn-sm" onclick="changeSettingsCalendarMonth(1)">다음달 &gt;</button>
+        </div>
+        <div class="calendar-grid" id="settingsCalendarGrid"></div>
       </div>
 
       <!-- 신규: 사용자 프로필 -->
@@ -1271,6 +1750,13 @@
         </div>
         <p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;">백업 파일명은 프로필에 입력한 이름을 따라 자동으로 지정됩니다 (미입력 시 guest.json).</p>
       </div>
+
+      <!-- 신규: 시스템 초기화 -->
+      <div class="card">
+        <h2 class="card-title">위험 구역</h2>
+        <button class="btn btn-danger" style="width:100%; padding:14px; font-size:1rem;" onclick="resetAllData()">사이트 데이터 초기화</button>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;">저장된 모든 단어장, 노트, 프로필 등 모든 데이터가 완전히 삭제되며 되돌릴 수 없습니다. 실행 전 데이터 백업을 권장합니다.</p>
+      </div>
     </section>
   </main>
 
@@ -1290,7 +1776,12 @@
       MOTTO: 'study_app_motto',
       SW_LAPS: 'study_app_sw_laps',
       PROFILE: 'study_app_profile',
-      STUDY_STATS: 'study_app_study_stats'
+      STUDY_STATS: 'study_app_study_stats',
+      DAILY_GOAL: 'study_app_daily_goal',
+      STUDY_LOG: 'study_app_study_log',
+      EXAM_RECORDS: 'study_app_exam_records',
+      GRADES: 'study_app_grade_logs',
+      PREMIUM_EXPIRY: 'premiumThemeExpiry'
     };
 
     function loadData(key) {
@@ -1518,11 +2009,184 @@
       studyStats.seconds += sec;
       localStorage.setItem(DB_KEYS.STUDY_STATS, JSON.stringify(studyStats));
       renderStudyStats();
+
+      // 학습 기록 달력용 날짜별 누적 시간 기록
+      studyLog[today] = (studyLog[today] || 0) + sec;
+      saveStudyLog(studyLog);
+      renderSettingsCalendar();
+
+      // 신규: 목표 도달률 진행바 실시간 갱신
+      updateGoalProgressBar();
     }
 
     function renderStudyStats() {
       const el = document.getElementById('todayStudyTimeDisplay');
       if (el) el.innerText = formatTime(studyStats.seconds);
+    }
+
+    /* ==========================================
+       신규: 목표 공부 시간 설정
+       ========================================== */
+    function loadDailyGoal() {
+      const raw = localStorage.getItem(DB_KEYS.DAILY_GOAL);
+      return raw ? JSON.parse(raw) : { h: 0, m: 0, s: 0 };
+    }
+    let dailyGoal = loadDailyGoal();
+
+    function renderDailyGoalInputs() {
+      document.getElementById('goalHourInput').value = dailyGoal.h || 0;
+      document.getElementById('goalMinInput').value = dailyGoal.m || 0;
+      document.getElementById('goalSecInput').value = dailyGoal.s || 0;
+      renderGoalCurrentDisplay();
+    }
+
+    function renderGoalCurrentDisplay() {
+      const el = document.getElementById('goalCurrentDisplay');
+      if (!el) return;
+      const totalSec = (dailyGoal.h || 0) * 3600 + (dailyGoal.m || 0) * 60 + (dailyGoal.s || 0);
+      if (totalSec <= 0) {
+        el.innerText = '설정된 목표가 없습니다.';
+      } else {
+        el.innerText = `현재 목표: ${formatTime(totalSec)}`;
+      }
+      updateGoalProgressBar();
+    }
+
+    function saveDailyGoal() {
+      let h = parseInt(document.getElementById('goalHourInput').value, 10);
+      let m = parseInt(document.getElementById('goalMinInput').value, 10);
+      let s = parseInt(document.getElementById('goalSecInput').value, 10);
+
+      // 자연수(0 이상의 정수)만 허용, 최대 23:59:59로 제한
+      h = Number.isFinite(h) && h >= 0 ? Math.min(h, 23) : 0;
+      m = Number.isFinite(m) && m >= 0 ? Math.min(m, 59) : 0;
+      s = Number.isFinite(s) && s >= 0 ? Math.min(s, 59) : 0;
+
+      dailyGoal = { h, m, s };
+      localStorage.setItem(DB_KEYS.DAILY_GOAL, JSON.stringify(dailyGoal));
+      renderDailyGoalInputs();
+      renderSettingsCalendar();
+      alert('목표 공부 시간이 저장되었습니다.');
+    }
+
+    /* ==========================================
+       신규: 목표 공부 시간 실시간 도달률 진행바
+       ========================================== */
+    function updateGoalProgressBar() {
+      const barEl = document.getElementById('goalProgressBar');
+      const textEl = document.getElementById('goalProgressText');
+      if (!barEl || !textEl) return;
+
+      const goalTotalSec = (dailyGoal.h || 0) * 3600 + (dailyGoal.m || 0) * 60 + (dailyGoal.s || 0);
+      let percent = 0;
+      if (goalTotalSec > 0) {
+        percent = Math.floor((studyStats.seconds / goalTotalSec) * 100);
+        if (percent > 100) percent = 100;
+        if (percent < 0) percent = 0;
+      }
+
+      barEl.style.width = `${percent}%`;
+      textEl.innerText = `목표 도달률: ${percent}%`;
+    }
+
+    /* ==========================================
+       신규: 학습 기록 달력 UI
+       ========================================== */
+    function loadStudyLog() {
+      const raw = localStorage.getItem(DB_KEYS.STUDY_LOG);
+      return raw ? JSON.parse(raw) : {};
+    }
+    function saveStudyLog(log) {
+      localStorage.setItem(DB_KEYS.STUDY_LOG, JSON.stringify(log));
+    }
+    let studyLog = loadStudyLog();
+    let settingsCalDate = new Date();
+
+    function formatLogTime(totalSeconds) {
+      // 달력 칸에는 시:분 형식으로 최대 23:59까지만 표시 (자연수 형식)
+      let totalMinutes = Math.floor(totalSeconds / 60);
+      let hh = Math.floor(totalMinutes / 60);
+      let mm = totalMinutes % 60;
+      if (hh > 23) { hh = 23; mm = 59; }
+      return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+    }
+
+    function renderSettingsCalendar() {
+      const gridEl = document.getElementById('settingsCalendarGrid');
+      const titleEl = document.getElementById('settingsCalendarMonthTitle');
+      if (!gridEl || !titleEl) return;
+
+      const year = settingsCalDate.getFullYear();
+      const month = settingsCalDate.getMonth();
+      titleEl.innerText = `${year}년 ${month + 1}월`;
+
+      gridEl.innerHTML = '';
+      const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
+      daysOfWeek.forEach(day => {
+        const h = document.createElement('div');
+        h.className = 'calendar-day-head';
+        h.innerText = day;
+        gridEl.appendChild(h);
+      });
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+      const prevLastDate = new Date(year, month, 0).getDate();
+
+      const today = new Date();
+      const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+      const goalTotalSec = (dailyGoal.h || 0) * 3600 + (dailyGoal.m || 0) * 60 + (dailyGoal.s || 0);
+
+      for (let i = firstDay - 1; i >= 0; i--) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell other-month';
+        cell.innerHTML = `<span>${prevLastDate - i}</span>`;
+        gridEl.appendChild(cell);
+      }
+
+      for (let d = 1; d <= lastDate; d++) {
+        const cell = document.createElement('div');
+        let classes = 'calendar-cell';
+        if (isCurrentMonth && d === today.getDate()) classes += ' today';
+        cell.className = classes;
+
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const secondsForDay = studyLog[dateKey] || 0;
+
+        let tagHtml = '';
+        if (secondsForDay > 0) {
+          const metGoal = goalTotalSec > 0 && secondsForDay >= goalTotalSec;
+          tagHtml = `<div class="study-log-tag${metGoal ? ' goal-met' : ''}">${formatLogTime(secondsForDay)}</div>`;
+        }
+
+        cell.innerHTML = `<span>${d}</span>${tagHtml}`;
+        gridEl.appendChild(cell);
+      }
+
+      const totalCells = firstDay + lastDate;
+      const nextDays = (7 - (totalCells % 7)) % 7;
+      for (let i = 1; i <= nextDays; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell other-month';
+        cell.innerHTML = `<span>${i}</span>`;
+        gridEl.appendChild(cell);
+      }
+    }
+
+    function changeSettingsCalendarMonth(offset) {
+      settingsCalDate.setMonth(settingsCalDate.getMonth() + offset);
+      renderSettingsCalendar();
+    }
+
+    /* ==========================================
+       신규: 사이트 데이터 초기화
+       ========================================== */
+    function resetAllData() {
+      const confirmed = confirm('정말로 초기화하시겠습니까? 저장된 모든 단어장, 노트, 프로필 데이터가 완전히 삭제되며 되돌릴 수 없습니다.');
+      if (confirmed) {
+        localStorage.clear();
+        location.reload();
+      }
     }
 
     /* ==========================================
@@ -1739,6 +2403,7 @@
           <div class="note-content-body">
             <p>${escapeHtml(note.content)}</p>
             <div class="note-actions">
+              <button class="btn btn-success btn-sm" onclick="printNote(event, ${originalIndex})">PDF 저장 / 인쇄</button>
               <button class="btn btn-secondary btn-sm" onclick="editNote(${originalIndex})">수정</button>
               <button class="btn btn-danger btn-sm" onclick="deleteNote(${originalIndex})">삭제</button>
             </div>
@@ -1812,6 +2477,28 @@
           resetNoteForm();
         }
       }
+    }
+
+    /* ==========================================
+       신규: 4단 노트 PDF 저장 / 인쇄
+       ========================================== */
+    function printNote(e, index) {
+      if (e) e.stopPropagation();
+      const note = notes[index];
+      if (!note) return;
+
+      const printArea = document.getElementById('printArea');
+      printArea.innerHTML = `
+        <div class="print-note-title">${escapeHtml(note.title)}</div>
+        ${note.subtitle ? `<div class="print-note-subtitle">${escapeHtml(note.subtitle)}</div>` : ''}
+        ${note.keywords ? `<div class="print-note-keywords">키워드: ${escapeHtml(note.keywords)}</div>` : ''}
+        <div class="print-note-content">${escapeHtml(note.content)}</div>
+      `;
+
+      // 렌더링이 완료된 다음 프레임에 인쇄창을 호출한다.
+      requestAnimationFrame(() => {
+        window.print();
+      });
     }
 
     /* ==========================================
@@ -2610,7 +3297,8 @@
               <span class="subject-tag">${escapeHtml(book.subject)}</span>
               <span style="font-size:0.85rem; color:var(--text-muted); margin-left:10px;">(단어 ${book.words.length}개)</span>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
+            <div class="vocab-header-actions">
+              <button class="btn btn-secondary btn-sm" onclick="shareVocabBook(event, '${book.id}')">이 단어장 공유</button>
               <button class="btn btn-danger btn-sm" onclick="deleteVocabBook(event, '${book.id}')">단어장 삭제</button>
               <span class="accordion-icon">▼</span>
             </div>
@@ -2627,7 +3315,10 @@
                 <input type="text" id="wordText-${book.id}" class="form-control" placeholder="단어" required>
                 <input type="text" id="wordMeaning-${book.id}" class="form-control" placeholder="뜻" required>
               </div>
-              <button type="submit" class="btn btn-primary btn-sm" style="margin-top:10px;">+ 단어 추가</button>
+              <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+                <button type="submit" class="btn btn-primary btn-sm">+ 단어 추가</button>
+                <button type="button" class="btn btn-warning btn-sm" onclick="openExamModal('${book.id}')">시험 보기</button>
+              </div>
             </form>
             <!-- 단어 목록 테이블 -->
             <table class="word-table">
@@ -2744,6 +3435,540 @@
         const bookEl = document.getElementById(`vocab-book-${bookId}`);
         if (bookEl) bookEl.classList.add('open');
       }
+    }
+
+    /* ==========================================
+       신규: 개별 단어장 공유 (내보내기 / 불러오기)
+       ========================================== */
+    function shareVocabBook(e, bookId) {
+      if (e) e.stopPropagation();
+      const book = vocabBooks.find(b => b.id === bookId);
+      if (!book) return;
+
+      // 해당 단어장 1개의 데이터만 추출 (다른 단어장/노트/디데이 데이터는 포함하지 않음)
+      const shareObj = {
+        name: book.name,
+        subject: book.subject,
+        words: book.words.map(w => ({ num: w.num, word: w.word, meaning: w.meaning }))
+      };
+
+      const rawName = (book.name || '단어장').trim();
+      const safeName = rawName.replace(/[\\/:*?"<>|]/g, '').trim() || '단어장';
+      const fileName = `${safeName}_공유.json`;
+
+      const blob = new Blob([JSON.stringify(shareObj, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function importVocabBookFile(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (!data || typeof data.name !== 'string' || !Array.isArray(data.words)) {
+            throw new Error('invalid');
+          }
+
+          const newBook = {
+            id: Date.now().toString(),
+            name: data.name,
+            subject: data.subject || '공유됨',
+            words: data.words
+              .filter(w => w && typeof w.word === 'string')
+              .map((w, i) => ({
+                id: (Date.now() + i).toString(),
+                num: Number.isFinite(w.num) ? w.num : (i + 1),
+                word: String(w.word || ''),
+                meaning: String(w.meaning || '')
+              }))
+          };
+          newBook.words.sort((a, b) => a.num - b.num);
+
+          vocabBooks.push(newBook);
+          saveData(DB_KEYS.VOCAB_BOOKS, vocabBooks);
+          renderVocabBooks();
+          alert('단어장을 불러왔습니다.');
+        } catch (err) {
+          alert('올바른 공유 단어장 파일이 아닙니다.');
+        }
+      };
+      reader.readAsText(file);
+      input.value = '';
+    }
+
+    /* ==========================================
+       신규: 단어장 기반 시험 응시 및 기록 관리
+       ========================================== */
+    let examRecords = loadData(DB_KEYS.EXAM_RECORDS);
+    let currentExamBookId = null;
+    let currentExamQuestions = [];
+
+    function openExamModal(bookId) {
+      const book = vocabBooks.find(b => b.id === bookId);
+      if (!book || book.words.length === 0) {
+        alert('시험을 보려면 먼저 단어를 추가해주세요.');
+        return;
+      }
+      currentExamBookId = bookId;
+
+      const box = document.getElementById('examModalBox');
+      const wordRows = book.words.map(w => `
+        <label class="exam-word-select-row">
+          <input type="checkbox" class="exam-word-check" value="${w.id}" checked>
+          <span>${escapeHtml(w.word)} - ${escapeHtml(w.meaning)}</span>
+        </label>
+      `).join('');
+
+      box.innerHTML = `
+        <div class="exam-modal-header">
+          <h3>단어 시험: ${escapeHtml(book.name)}</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeExamModal()">닫기</button>
+        </div>
+        <div class="form-group">
+          <label>시험 방식</label>
+          <div style="display:flex; gap:15px;">
+            <label style="display:flex; align-items:center; gap:5px;"><input type="radio" name="examMode" value="word-to-meaning" checked> 단어 보고 뜻 맞추기</label>
+            <label style="display:flex; align-items:center; gap:5px;"><input type="radio" name="examMode" value="meaning-to-word"> 뜻 보고 단어 맞추기</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex; justify-content:space-between; align-items:center;">
+            <span>응시할 단어 선택 (기본: 전체 선택)</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleExamSelectAll(this)">전체 해제</button>
+          </label>
+          <div id="examWordSelectList" style="max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; padding:5px 10px;">
+            ${wordRows}
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="startExam()">시험 시작</button>
+      `;
+
+      document.getElementById('examModalOverlay').classList.add('open');
+    }
+
+    function closeExamModal() {
+      document.getElementById('examModalOverlay').classList.remove('open');
+      document.getElementById('examModalBox').innerHTML = '';
+      currentExamBookId = null;
+      currentExamQuestions = [];
+    }
+
+    function toggleExamSelectAll(btn) {
+      const checks = document.querySelectorAll('.exam-word-check');
+      const allChecked = Array.from(checks).every(c => c.checked);
+      checks.forEach(c => { c.checked = !allChecked; });
+      btn.innerText = allChecked ? '전체 선택' : '전체 해제';
+    }
+
+    function startExam() {
+      const book = vocabBooks.find(b => b.id === currentExamBookId);
+      if (!book) return;
+
+      const mode = document.querySelector('input[name="examMode"]:checked').value;
+      const selectedIds = Array.from(document.querySelectorAll('.exam-word-check:checked')).map(c => c.value);
+      if (selectedIds.length === 0) {
+        alert('시험 볼 단어를 하나 이상 선택해주세요.');
+        return;
+      }
+
+      currentExamQuestions = book.words
+        .filter(w => selectedIds.includes(w.id))
+        .map(w => ({
+          id: w.id,
+          question: mode === 'word-to-meaning' ? w.word : w.meaning,
+          answer: mode === 'word-to-meaning' ? w.meaning : w.word,
+          userAnswer: ''
+        }));
+
+      // 출제 순서 랜덤 섞기
+      for (let i = currentExamQuestions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [currentExamQuestions[i], currentExamQuestions[j]] = [currentExamQuestions[j], currentExamQuestions[i]];
+      }
+
+      const box = document.getElementById('examModalBox');
+      const modeLabel = mode === 'word-to-meaning' ? '단어를 보고 뜻을 입력하세요' : '뜻을 보고 단어를 입력하세요';
+
+      const questionsHtml = currentExamQuestions.map((q, i) => `
+        <div class="exam-question-item">
+          <div class="exam-q-text">${i + 1}. ${escapeHtml(q.question)}</div>
+          <input type="text" class="form-control exam-answer-input" data-qindex="${i}" placeholder="정답 입력">
+        </div>
+      `).join('');
+
+      box.innerHTML = `
+        <div class="exam-modal-header">
+          <h3>${escapeHtml(book.name)} 시험 (${modeLabel})</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeExamModal()">닫기</button>
+        </div>
+        <div id="examQuestionsArea">${questionsHtml}</div>
+        <button class="btn btn-primary" style="width:100%;" onclick="gradeExam()">채점하기</button>
+      `;
+    }
+
+    function gradeExam() {
+      const inputs = document.querySelectorAll('.exam-answer-input');
+      let correctCount = 0;
+
+      inputs.forEach(input => {
+        const idx = parseInt(input.getAttribute('data-qindex'), 10);
+        currentExamQuestions[idx].userAnswer = input.value.trim();
+      });
+
+      const resultsHtml = currentExamQuestions.map((q, i) => {
+        const isCorrect = q.userAnswer !== '' && q.userAnswer.toLowerCase() === q.answer.toLowerCase();
+        if (isCorrect) correctCount++;
+        return `
+          <div class="exam-question-item ${isCorrect ? 'correct' : 'wrong'}">
+            <div class="exam-q-text">${i + 1}. ${escapeHtml(q.question)} ${isCorrect ? '✅' : '❌'}</div>
+            <div class="exam-result-answer">내 답: ${escapeHtml(q.userAnswer || '(미입력)')}</div>
+            ${!isCorrect ? `<div class="exam-result-answer">정답: ${escapeHtml(q.answer)}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+
+      const total = currentExamQuestions.length;
+      const book = vocabBooks.find(b => b.id === currentExamBookId);
+      const bookName = book ? book.name : '단어장';
+
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      examRecords.unshift({
+        id: Date.now().toString(),
+        label: `${bookName} 시험`,
+        date: dateStr,
+        correct: correctCount,
+        total: total
+      });
+      saveData(DB_KEYS.EXAM_RECORDS, examRecords);
+      renderExamRecords();
+
+      const box = document.getElementById('examModalBox');
+      box.innerHTML = `
+        <div class="exam-modal-header">
+          <h3>채점 결과: ${correctCount} / ${total}</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeExamModal()">닫기</button>
+        </div>
+        <div>${resultsHtml}</div>
+        <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="closeExamModal()">확인</button>
+      `;
+    }
+
+    function renderExamRecords() {
+      const container = document.getElementById('examRecordsContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (examRecords.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted);">응시한 단어시험 기록이 없습니다.</p>';
+        return;
+      }
+
+      examRecords.forEach(rec => {
+        const item = document.createElement('div');
+        item.className = 'exam-record-item';
+        item.id = `exam-record-${rec.id}`;
+        item.innerHTML = `
+          <div class="exam-record-info" id="exam-record-label-${rec.id}">
+            <span>${escapeHtml(rec.label)}</span>
+            <span style="font-size:0.8rem; color:var(--text-muted);">${escapeHtml(rec.date)} · <span class="exam-record-score">${rec.correct} / ${rec.total}</span></span>
+          </div>
+          <div class="exam-record-actions">
+            <button class="btn btn-secondary btn-sm" onclick="editExamRecordLabel('${rec.id}')">수정</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteExamRecord('${rec.id}')">삭제</button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function editExamRecordLabel(recId) {
+      const rec = examRecords.find(r => r.id === recId);
+      if (!rec) return;
+      const area = document.getElementById(`exam-record-label-${recId}`);
+      area.innerHTML = `
+        <input type="text" class="form-control" id="edit-exam-label-${recId}" value="${escapeHtml(rec.label)}" style="padding:4px 8px; font-size:0.9rem;">
+      `;
+      const actionsArea = document.getElementById(`exam-record-${recId}`).querySelector('.exam-record-actions');
+      actionsArea.innerHTML = `<button class="btn btn-success btn-sm" onclick="saveExamRecordLabel('${recId}')">저장</button>`;
+    }
+
+    function saveExamRecordLabel(recId) {
+      const input = document.getElementById(`edit-exam-label-${recId}`);
+      if (!input) return;
+      const newLabel = input.value.trim();
+      const rec = examRecords.find(r => r.id === recId);
+      if (rec && newLabel) {
+        rec.label = newLabel;
+        saveData(DB_KEYS.EXAM_RECORDS, examRecords);
+      }
+      renderExamRecords();
+    }
+
+    function deleteExamRecord(recId) {
+      if (confirm('이 시험 기록을 삭제하시겠습니까?')) {
+        examRecords = examRecords.filter(r => r.id !== recId);
+        saveData(DB_KEYS.EXAM_RECORDS, examRecords);
+        renderExamRecords();
+      }
+    }
+
+    /* ==========================================
+       신규: 성적 기록 및 그래프 추적
+       ========================================== */
+    let gradeLogs = loadData(DB_KEYS.GRADES);
+
+    function renderGrades() {
+      const container = document.getElementById('gradesContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (gradeLogs.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted);">저장된 성적 기록이 없습니다.</p>';
+        renderGradeChart();
+        return;
+      }
+
+      const sorted = gradeLogs.slice().sort((a, b) => b.examDate.localeCompare(a.examDate));
+
+      sorted.forEach(g => {
+        const item = document.createElement('div');
+        item.className = 'grade-item';
+        item.id = `grade-item-${g.id}`;
+        item.innerHTML = `
+          <div class="grade-info">
+            <span class="grade-badge">${escapeHtml(g.examType)}</span>
+            <strong>${escapeHtml(g.subject)}</strong>
+            <span class="grade-date">${escapeHtml(g.examDate)}</span>
+          </div>
+          <div class="grade-score">내 점수: ${g.myScore} / 목표: ${g.targetScore}</div>
+          <div class="grade-actions">
+            <button class="btn btn-secondary btn-sm" onclick="editGrade('${g.id}')">수정</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteGrade('${g.id}')">삭제</button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+
+      renderGradeChart();
+    }
+
+    function saveGrade(e) {
+      e.preventDefault();
+      const editId = document.getElementById('gradeEditId').value;
+      const examType = document.getElementById('gradeType').value;
+      const examDate = document.getElementById('gradeDate').value;
+      const subject = document.getElementById('gradeSubject').value.trim();
+      const myScore = parseFloat(document.getElementById('gradeMyScore').value);
+      const targetScore = parseFloat(document.getElementById('gradeTargetScore').value);
+
+      if (!examDate || !subject || isNaN(myScore) || isNaN(targetScore)) {
+        alert('모든 항목을 올바르게 입력해주세요.');
+        return;
+      }
+
+      if (editId !== '') {
+        const idx = gradeLogs.findIndex(g => g.id === editId);
+        if (idx !== -1) {
+          gradeLogs[idx] = { ...gradeLogs[idx], examType, examDate, subject, myScore, targetScore };
+        }
+      } else {
+        gradeLogs.push({
+          id: Date.now().toString(),
+          examType, examDate, subject, myScore, targetScore
+        });
+      }
+
+      saveData(DB_KEYS.GRADES, gradeLogs);
+      renderGrades();
+      resetGradeForm();
+    }
+
+    function editGrade(id) {
+      const g = gradeLogs.find(item => item.id === id);
+      if (!g) return;
+
+      document.getElementById('gradeEditId').value = g.id;
+      document.getElementById('gradeType').value = g.examType;
+      document.getElementById('gradeDate').value = g.examDate;
+      document.getElementById('gradeSubject').value = g.subject;
+      document.getElementById('gradeMyScore').value = g.myScore;
+      document.getElementById('gradeTargetScore').value = g.targetScore;
+
+      document.getElementById('gradeFormTitle').innerText = '성적 수정';
+      document.getElementById('gradeSubmitBtn').innerText = '수정 완료';
+      document.getElementById('gradeCancelBtn').style.display = 'inline-flex';
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetGradeForm() {
+      document.getElementById('gradeForm').reset();
+      document.getElementById('gradeEditId').value = '';
+      document.getElementById('gradeFormTitle').innerText = '성적 입력';
+      document.getElementById('gradeSubmitBtn').innerText = '성적 저장';
+      document.getElementById('gradeCancelBtn').style.display = 'none';
+    }
+
+    function deleteGrade(id) {
+      if (confirm('이 성적 기록을 삭제하시겠습니까?')) {
+        gradeLogs = gradeLogs.filter(g => g.id !== id);
+        saveData(DB_KEYS.GRADES, gradeLogs);
+        renderGrades();
+        if (document.getElementById('gradeEditId').value === id) {
+          resetGradeForm();
+        }
+      }
+    }
+
+    function renderGradeChart() {
+      const container = document.getElementById('gradeChartContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (gradeLogs.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted);">성적 데이터가 없어 그래프를 표시할 수 없습니다.</p>';
+        return;
+      }
+
+      // 과목별로 그룹화
+      const subjectGroups = {};
+      gradeLogs.forEach(g => {
+        if (!subjectGroups[g.subject]) subjectGroups[g.subject] = [];
+        subjectGroups[g.subject].push(g);
+      });
+
+      Object.keys(subjectGroups).forEach(subject => {
+        const records = subjectGroups[subject].slice().sort((a, b) => a.examDate.localeCompare(b.examDate));
+        const maxVal = Math.max(10, ...records.map(r => Math.max(r.myScore, r.targetScore)));
+
+        const barsHtml = records.map(r => {
+          const myPct = Math.max(2, Math.round((r.myScore / maxVal) * 100));
+          const targetPct = Math.max(2, Math.round((r.targetScore / maxVal) * 100));
+          const shortDate = r.examDate.length >= 5 ? r.examDate.slice(5) : r.examDate;
+          return `
+            <div class="grade-bar-col">
+              <div class="grade-bar-pair">
+                <div class="grade-bar my-score" style="height:${myPct}%;" title="내 점수 ${r.myScore}"></div>
+                <div class="grade-bar target-score" style="height:${targetPct}%;" title="목표 점수 ${r.targetScore}"></div>
+              </div>
+              <div class="grade-bar-label">${r.myScore}</div>
+              <div class="grade-bar-date">${escapeHtml(shortDate)}</div>
+            </div>
+          `;
+        }).join('');
+
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'grade-chart-subject';
+        groupDiv.innerHTML = `
+          <h4>${escapeHtml(subject)}</h4>
+          <div class="grade-chart-bars">${barsHtml}</div>
+          <div class="grade-chart-legend">
+            <span><i class="legend-dot my"></i>내 점수</span>
+            <span><i class="legend-dot target"></i>목표 점수</span>
+          </div>
+        `;
+        container.appendChild(groupDiv);
+      });
+    }
+
+    /* ==========================================
+       신규: 광고 시청 연동 특별 테마 3종
+       ========================================== */
+    const PREMIUM_THEME_LIST = [
+      { key: 'midnight-gold', label: '미드나잇 골드', swatch: '#1a1a2e' },
+      { key: 'cyberpunk-neon', label: '사이버펑크 네온', swatch: '#0d0221' },
+      { key: 'minimal-white', label: '미니멀 화이트', swatch: '#fafafa' }
+    ];
+
+    function isPremiumUnlocked() {
+      const expiry = parseInt(localStorage.getItem(DB_KEYS.PREMIUM_EXPIRY), 10);
+      return Number.isFinite(expiry) && Date.now() < expiry;
+    }
+
+    function watchAdToUnlockPremium() {
+      const confirmed = confirm('30초 광고가 재생됩니다...\n\n(모의 광고 시청) 시청을 완료하면 특별 테마 3종이 24시간 동안 잠금 해제됩니다. 계속하시겠습니까?');
+      if (!confirmed) return;
+
+      const expiry = Date.now() + (24 * 60 * 60 * 1000);
+      localStorage.setItem(DB_KEYS.PREMIUM_EXPIRY, String(expiry));
+      alert('광고 시청이 완료되어 특별 테마 3종이 24시간 동안 잠금 해제되었습니다!');
+      renderPremiumThemes();
+    }
+
+    // 기존 setTheme()/applyRandomTheme() 함수는 전혀 수정하지 않고,
+    // 특별 테마 전용 적용 로직을 별도 함수로 분리하여 addative하게 구현한다.
+    function setPremiumTheme(themeName) {
+      document.body.classList.remove('theme-navy', 'theme-light', 'theme-red-orange', 'theme-yellow-green', 'theme-blue-indigo', 'theme-purple-white', 'theme-purple-black', 'theme-midnight-gold', 'theme-cyberpunk-neon', 'theme-minimal-white');
+      document.body.style.removeProperty('--bg-color');
+      document.body.style.removeProperty('--card-bg');
+      document.body.style.removeProperty('--primary');
+      document.body.style.removeProperty('--accent');
+      document.body.style.removeProperty('--accent-hover');
+      document.body.style.removeProperty('--text');
+      document.body.style.removeProperty('--text-muted');
+      document.body.style.removeProperty('--border');
+
+      document.body.classList.add(`theme-${themeName}`);
+      localStorage.setItem(DB_KEYS.THEME, themeName);
+    }
+
+    function selectPremiumTheme(themeName) {
+      if (!isPremiumUnlocked()) {
+        alert('먼저 광고를 시청하여 특별 테마를 잠금 해제해주세요.');
+        return;
+      }
+      setPremiumTheme(themeName);
+      renderPremiumThemes();
+    }
+
+    function renderPremiumThemes() {
+      const container = document.getElementById('premiumThemeContainer');
+      if (!container) return;
+
+      const unlocked = isPremiumUnlocked();
+
+      container.innerHTML = PREMIUM_THEME_LIST.map(t => `
+        <div class="premium-theme-row">
+          <button
+            class="btn ${unlocked ? 'btn-primary' : 'btn-secondary'} premium-theme-btn"
+            style="background-color:${t.swatch}; ${t.key === 'minimal-white' ? 'color:#111; border:1px solid #ddd;' : ''}"
+            onclick="selectPremiumTheme('${t.key}')"
+            ${unlocked ? '' : 'disabled'}
+          >${unlocked ? '' : '🔒 '}${t.label}</button>
+          ${unlocked
+            ? '<span class="premium-unlocked-badge">✓ 24시간 이용 가능</span>'
+            : `<button class="btn btn-warning btn-sm" onclick="watchAdToUnlockPremium()">광고 보고 24시간 해제</button>`
+          }
+        </div>
+      `).join('');
+    }
+
+    function checkPremiumThemeExpiry() {
+      // 페이지 로드 시 저장된 테마가 특별 테마인데 유효 기간(24시간)이 지났다면
+      // 자동으로 기본 테마로 되돌리고 잠금 상태로 전환한다.
+      const savedTheme = localStorage.getItem(DB_KEYS.THEME);
+      const premiumKeys = PREMIUM_THEME_LIST.map(t => t.key);
+
+      if (premiumKeys.includes(savedTheme)) {
+        if (isPremiumUnlocked()) {
+          setPremiumTheme(savedTheme);
+        } else {
+          setTheme('default'); // 기존 함수를 그대로 호출만 함 (내부 로직 미수정)
+        }
+      }
+      renderPremiumThemes();
     }
 
     /* ==========================================
@@ -3206,6 +4431,13 @@
       renderCounters();
       renderProfile();
       renderStudyStats();
+      renderDailyGoalInputs();
+      renderSettingsCalendar();
+      renderExamRecords();
+      renderGrades();
+      renderPremiumThemes();
+      checkPremiumThemeExpiry();
+      updateGoalProgressBar();
     };
   </script>
 </body>
