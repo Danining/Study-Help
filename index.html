@@ -1966,11 +1966,22 @@
     function loadData(key) {
       const data = localStorage.getItem(key);
       if (!data) return key === DB_KEYS.MOTTO ? '오늘도 최선을 다하자!' : [];
-      return JSON.parse(data);
+      try {
+        return JSON.parse(data);
+      } catch (err) {
+        console.error(`데이터 불러오기 오류 (${key}):`, err);
+        return key === DB_KEYS.MOTTO ? '오늘도 최선을 다하자!' : [];
+      }
     }
 
     function saveData(key, data) {
-      localStorage.setItem(key, JSON.stringify(data));
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+      } catch (err) {
+        console.error(`데이터 저장 오류 (${key}):`, err);
+        alert('데이터 저장에 실패했습니다. 저장 공간이 부족할 수 있습니다.');
+        return;
+      }
       // 로그인 유저라면 클라우드에도 동기화 (게스트 모드는 기기 저장만)
       queueCloudSync();
     }
@@ -2157,6 +2168,7 @@
         localStorage.removeItem(GUEST_MODE_KEY);
         setAuthGateLoading(true);
         await pullUserDataFromCloud(user.uid);
+        reloadAppStateFromStorage();
         setAuthGateLoading(false);
         enterMainApp('로그인 계정: ' + user.email);
       } else if (localStorage.getItem(GUEST_MODE_KEY) === 'true') {
@@ -2184,6 +2196,7 @@
         document.body.classList.add(`theme-${themeName}`);
       }
       localStorage.setItem(DB_KEYS.THEME, themeName);
+      queueCloudSync();
     }
 
     function applyRandomTheme() {
@@ -2207,6 +2220,7 @@
       document.body.style.setProperty('--border', border);
 
       localStorage.setItem(DB_KEYS.THEME, 'custom-random');
+      queueCloudSync();
     }
 
     function loadTheme() {
@@ -2327,6 +2341,7 @@
         status: document.getElementById('profileStatus').value.trim()
       };
       localStorage.setItem(DB_KEYS.PROFILE, JSON.stringify(userProfile));
+      queueCloudSync();
       updateProfileAge();
       alert('프로필이 저장되었습니다.');
     }
@@ -2367,6 +2382,7 @@
       if (!stats || stats.date !== today) {
         stats = { date: today, seconds: 0 };
         localStorage.setItem(DB_KEYS.STUDY_STATS, JSON.stringify(stats));
+        queueCloudSync();
       }
       return stats;
     }
@@ -2380,6 +2396,7 @@
       }
       studyStats.seconds += sec;
       localStorage.setItem(DB_KEYS.STUDY_STATS, JSON.stringify(studyStats));
+      queueCloudSync();
       renderStudyStats();
 
       // 학습 기록 달력용 날짜별 누적 시간 기록
@@ -2436,6 +2453,7 @@
 
       dailyGoal = { h, m, s };
       localStorage.setItem(DB_KEYS.DAILY_GOAL, JSON.stringify(dailyGoal));
+      queueCloudSync();
       renderDailyGoalInputs();
       renderSettingsCalendar();
       alert('목표 공부 시간이 저장되었습니다.');
@@ -2470,6 +2488,7 @@
     }
     function saveStudyLog(log) {
       localStorage.setItem(DB_KEYS.STUDY_LOG, JSON.stringify(log));
+      queueCloudSync();
     }
     let studyLog = loadStudyLog();
     let settingsCalDate = new Date();
@@ -2556,8 +2575,18 @@
     function resetAllData() {
       const confirmed = confirm('정말로 초기화하시겠습니까? 저장된 모든 단어장, 노트, 프로필 데이터가 완전히 삭제되며 되돌릴 수 없습니다.');
       if (confirmed) {
+        const user = fbAuth.currentUser;
         localStorage.clear();
-        location.reload();
+        const finishReset = () => location.reload();
+        if (user) {
+          // 로그인 계정이면 클라우드 저장 데이터도 함께 삭제해야
+          // 새로고침 시 자동 동기화로 데이터가 되살아나지 않는다.
+          fbDb.collection('users').doc(user.uid).delete()
+            .catch((err) => console.error('클라우드 데이터 초기화 실패:', err))
+            .finally(finishReset);
+        } else {
+          finishReset();
+        }
       }
     }
 
@@ -2602,8 +2631,19 @@
           Object.keys(data).forEach(key => {
             localStorage.setItem(key, data[key]);
           });
-          alert('복원이 완료되었습니다. 화면을 새로고침합니다.');
-          location.reload();
+
+          const finishRestore = () => {
+            alert('복원이 완료되었습니다. 화면을 새로고침합니다.');
+            location.reload();
+          };
+
+          // 로그인 계정이면 복원된 데이터를 즉시 클라우드에도 반영해야
+          // 새로고침 시 기존(구) 클라우드 데이터로 덮어써지지 않는다.
+          if (fbAuth.currentUser) {
+            pushUserDataToCloud().finally(finishRestore);
+          } else {
+            finishRestore();
+          }
         } catch (err) {
           alert('올바른 백업 파일이 아닙니다.');
         }
@@ -4275,6 +4315,7 @@
 
       const expiry = Date.now() + (24 * 60 * 60 * 1000);
       localStorage.setItem(DB_KEYS.PREMIUM_EXPIRY, String(expiry));
+      queueCloudSync();
       alert('광고 시청이 완료되어 특별 테마 3종이 24시간 동안 잠금 해제되었습니다!');
       renderPremiumThemes();
     }
@@ -4294,6 +4335,7 @@
 
       document.body.classList.add(`theme-${themeName}`);
       localStorage.setItem(DB_KEYS.THEME, themeName);
+      queueCloudSync();
     }
 
     function selectPremiumTheme(themeName) {
@@ -4786,6 +4828,32 @@
     }
 
     /* ==========================================
+       클라우드 데이터를 로컬스토리지에 반영한 뒤,
+       이미 로드되어 있던 메모리상의 상태 변수들도
+       최신 값으로 다시 채워준다.
+       (기존 변수들은 스크립트 최초 실행 시 1회만
+        localStorage에서 읽어오므로, 로그인 후
+        클라우드 데이터를 pull 해도 화면에는 반영되지
+        않던 문제를 해결하기 위한 함수)
+       ========================================== */
+    function reloadAppStateFromStorage() {
+      notes = loadData(DB_KEYS.NOTES);
+      ddays = loadData(DB_KEYS.DDAYS);
+      goals = loadData(DB_KEYS.GOALS);
+      cards = loadData(DB_KEYS.CARDS);
+      vocabBooks = loadData(DB_KEYS.VOCAB_BOOKS);
+      examRecords = loadData(DB_KEYS.EXAM_RECORDS);
+      gradeLogs = loadData(DB_KEYS.GRADES);
+      subjects = loadData(DB_KEYS.SUBJECTS);
+      swLaps = loadData(DB_KEYS.SW_LAPS);
+      counters = loadData(DB_KEYS.COUNTERS);
+      userProfile = loadProfile();
+      studyStats = loadStudyStats();
+      dailyGoal = loadDailyGoal();
+      studyLog = loadStudyLog();
+    }
+
+    /* ==========================================
        앱 초기화 실행 (로그인/게스트 진입 확정 후 1회 호출됨)
        ========================================== */
     function initMainApp() {
@@ -4812,5 +4880,6 @@
       updateGoalProgressBar();
     }
   </script>
+
 </body>
 </html>
