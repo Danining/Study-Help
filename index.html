@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>종합 공부 관리 시스템</title>
+  <!-- Firebase SDK (Auth + Firestore) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     :root {
       --bg-color: #f4f6f9;
@@ -1196,9 +1200,177 @@
       .grade-actions { width: 100%; justify-content: flex-end; }
       .premium-theme-row { flex-direction: column; align-items: flex-start; }
     }
+    /* ==========================================
+       로그인/접속 방식 선택 게이트웨이 화면
+       ========================================== */
+    #authGateOverlay {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .auth-gate-card {
+      background: var(--card-bg);
+      color: var(--text);
+      width: 100%;
+      max-width: 400px;
+      border-radius: var(--radius);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+      padding: 32px 28px;
+      box-sizing: border-box;
+    }
+
+    .auth-gate-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 6px;
+      color: var(--primary);
+    }
+
+    .auth-gate-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .auth-gate-form .form-group {
+      margin-bottom: 14px;
+    }
+
+    .auth-gate-form label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+    }
+
+    .auth-gate-btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .auth-gate-btn-row .btn {
+      flex: 1;
+    }
+
+    .auth-gate-divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      margin: 22px 0 16px;
+    }
+
+    .auth-gate-divider::before,
+    .auth-gate-divider::after {
+      content: "";
+      flex: 1;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .auth-gate-divider:not(:empty)::before {
+      margin-right: 10px;
+    }
+
+    .auth-gate-divider:not(:empty)::after {
+      margin-left: 10px;
+    }
+
+    .btn-guest {
+      width: 100%;
+      background-color: transparent;
+      border: 2px dashed var(--accent);
+      color: var(--accent);
+      font-weight: 700;
+      padding: 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-guest:hover {
+      background-color: var(--accent);
+      color: white;
+    }
+
+    .auth-gate-error {
+      background-color: rgba(231, 76, 60, 0.12);
+      color: var(--danger);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      display: none;
+    }
+
+    .auth-gate-loading {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 10px;
+      display: none;
+    }
+
+    @media (max-width: 480px) {
+      .auth-gate-card {
+        padding: 26px 18px;
+        max-width: 100%;
+      }
+      .auth-gate-title {
+        font-size: 1.2rem;
+      }
+    }
   </style>
 </head>
 <body>
+
+  <!-- ==========================================
+       접속 게이트웨이 화면 (로그인/회원가입/게스트)
+       ========================================== -->
+  <div id="authGateOverlay">
+    <div class="auth-gate-card">
+      <div class="auth-gate-title">Danining 스마트 학습 관리 로그인</div>
+      <div class="auth-gate-subtitle">로그인하면 어느 기기에서든 데이터가 이어집니다.</div>
+
+      <div id="authGateError" class="auth-gate-error"></div>
+
+      <form class="auth-gate-form" id="authGateForm" onsubmit="return false;">
+        <div class="form-group">
+          <label for="authEmailInput">이메일</label>
+          <input type="email" id="authEmailInput" class="form-control" placeholder="example@email.com" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="authPasswordInput">비밀번호</label>
+          <input type="password" id="authPasswordInput" class="form-control" placeholder="6자 이상 입력" autocomplete="current-password">
+        </div>
+        <div class="auth-gate-btn-row">
+          <button type="button" class="btn btn-primary" id="authLoginBtn" onclick="handleEmailLogin()">로그인</button>
+          <button type="button" class="btn btn-secondary" id="authSignupBtn" onclick="handleEmailSignup()">회원가입</button>
+        </div>
+      </form>
+
+      <div class="auth-gate-loading" id="authGateLoading">처리 중입니다...</div>
+
+      <div class="auth-gate-divider">또는</div>
+
+      <button type="button" class="btn-guest" onclick="handleGuestStart()">로그인 없이 게스트로 시작하기 (기기 저장)</button>
+    </div>
+  </div>
 
   <!-- 폭죽 효과용 캔버스 -->
   <canvas id="confettiCanvas"></canvas>
@@ -1633,6 +1805,13 @@
     </section>
 
     <section id="tab-settings" class="tab-content">
+      <!-- 신규: 계정 정보 및 로그아웃 -->
+      <div class="card">
+        <h2 class="card-title">계정</h2>
+        <div id="accountStatusDisplay" style="font-size:0.9rem; font-weight:600; color:var(--primary); margin-bottom:14px;">접속 정보를 불러오는 중...</div>
+        <button class="btn btn-danger" style="width:100%; padding:12px;" onclick="handleLogout()">로그아웃 및 데이터 세션 종료</button>
+      </div>
+
       <div class="card">
         <h2 class="card-title">앱 설정</h2>
         <div class="form-group">
@@ -1792,7 +1971,200 @@
 
     function saveData(key, data) {
       localStorage.setItem(key, JSON.stringify(data));
+      // 로그인 유저라면 클라우드에도 동기화 (게스트 모드는 기기 저장만)
+      queueCloudSync();
     }
+
+    /* ==========================================
+       0. 접속 게이트웨이: Firebase Auth + 게스트 모드
+          + Firestore 데이터 동기화 (뼈대)
+       ========================================== */
+    const firebaseConfig = {
+      apiKey: "AIzaSyD4NiB_bmb-ThaStulbrhnmIzFtzYJEipo",
+      authDomain: "myplanner-3dd06.firebaseapp.com",
+      projectId: "myplanner-3dd06",
+      storageBucket: "myplanner-3dd06.firebasestorage.app",
+      messagingSenderId: "903533345258",
+      appId: "1:903533345258:web:23c3a5e41e0e4261ae9a93",
+      measurementId: "G-QW2PZLG4EH"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const fbAuth = firebase.auth();
+    const fbDb = firebase.firestore();
+
+    const GUEST_MODE_KEY = 'study_app_guest_mode';
+    let isMainAppInitialized = false;
+    let cloudSyncTimeout = null;
+    let isApplyingCloudData = false; // 클라우드 → 로컬 반영 중에는 재업로드 방지
+
+    // 모든 DB_KEYS 값을 한 번에 불러오는 헬퍼 (동기화용)
+    function getAllLocalData() {
+      const snapshot = {};
+      Object.values(DB_KEYS).forEach((storageKey) => {
+        const raw = localStorage.getItem(storageKey);
+        if (raw !== null) snapshot[storageKey] = raw;
+      });
+      return snapshot;
+    }
+
+    // 사용자 문서에 로컬 데이터 전체를 업로드 (merge)
+    async function pushUserDataToCloud() {
+      const user = fbAuth.currentUser;
+      if (!user || isApplyingCloudData) return;
+      try {
+        await fbDb.collection('users').doc(user.uid).set({
+          data: getAllLocalData(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      } catch (err) {
+        console.error('클라우드 저장 실패:', err);
+      }
+    }
+
+    // saveData가 호출될 때마다 짧게 디바운스하여 클라우드 업로드
+    function queueCloudSync() {
+      if (!fbAuth.currentUser || isApplyingCloudData) return;
+      clearTimeout(cloudSyncTimeout);
+      cloudSyncTimeout = setTimeout(pushUserDataToCloud, 800);
+    }
+
+    // 로그인 시 사용자 문서를 불러와 로컬스토리지에 반영
+    async function pullUserDataFromCloud(uid) {
+      try {
+        const doc = await fbDb.collection('users').doc(uid).get();
+        if (doc.exists && doc.data() && doc.data().data) {
+          isApplyingCloudData = true;
+          const cloudData = doc.data().data;
+          Object.values(DB_KEYS).forEach((storageKey) => {
+            if (cloudData[storageKey] !== undefined) {
+              localStorage.setItem(storageKey, cloudData[storageKey]);
+            }
+          });
+          isApplyingCloudData = false;
+          return true;
+        }
+        return false;
+      } catch (err) {
+        console.error('클라우드 데이터 불러오기 실패:', err);
+        isApplyingCloudData = false;
+        return false;
+      }
+    }
+
+    function showAuthGateError(message) {
+      const el = document.getElementById('authGateError');
+      el.textContent = message;
+      el.style.display = 'block';
+    }
+
+    function clearAuthGateError() {
+      const el = document.getElementById('authGateError');
+      el.style.display = 'none';
+      el.textContent = '';
+    }
+
+    function setAuthGateLoading(isLoading) {
+      document.getElementById('authGateLoading').style.display = isLoading ? 'block' : 'none';
+      document.getElementById('authLoginBtn').disabled = isLoading;
+      document.getElementById('authSignupBtn').disabled = isLoading;
+    }
+
+    function getAuthGateInputs() {
+      const email = document.getElementById('authEmailInput').value.trim();
+      const password = document.getElementById('authPasswordInput').value;
+      return { email, password };
+    }
+
+    function friendlyAuthError(err) {
+      const code = err && err.code ? err.code : '';
+      if (code === 'auth/invalid-email') return '이메일 형식이 올바르지 않습니다.';
+      if (code === 'auth/user-not-found') return '가입되지 않은 이메일입니다.';
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') return '비밀번호가 일치하지 않습니다.';
+      if (code === 'auth/email-already-in-use') return '이미 가입된 이메일입니다. 로그인해주세요.';
+      if (code === 'auth/weak-password') return '비밀번호는 6자 이상이어야 합니다.';
+      return '오류가 발생했습니다: ' + (err && err.message ? err.message : '알 수 없는 오류');
+    }
+
+    function handleEmailLogin() {
+      clearAuthGateError();
+      const { email, password } = getAuthGateInputs();
+      if (!email || !password) {
+        showAuthGateError('이메일과 비밀번호를 모두 입력해주세요.');
+        return;
+      }
+      setAuthGateLoading(true);
+      fbAuth.signInWithEmailAndPassword(email, password)
+        .catch((err) => {
+          setAuthGateLoading(false);
+          showAuthGateError(friendlyAuthError(err));
+        });
+    }
+
+    function handleEmailSignup() {
+      clearAuthGateError();
+      const { email, password } = getAuthGateInputs();
+      if (!email || !password) {
+        showAuthGateError('이메일과 비밀번호를 모두 입력해주세요.');
+        return;
+      }
+      if (password.length < 6) {
+        showAuthGateError('비밀번호는 6자 이상이어야 합니다.');
+        return;
+      }
+      setAuthGateLoading(true);
+      fbAuth.createUserWithEmailAndPassword(email, password)
+        .catch((err) => {
+          setAuthGateLoading(false);
+          showAuthGateError(friendlyAuthError(err));
+        });
+    }
+
+    function handleGuestStart() {
+      localStorage.setItem(GUEST_MODE_KEY, 'true');
+      enterMainApp('게스트로 접속 중 (기기 저장)');
+    }
+
+    function handleLogout() {
+      clearTimeout(cloudSyncTimeout);
+      localStorage.removeItem(GUEST_MODE_KEY);
+      if (fbAuth.currentUser) {
+        fbAuth.signOut().finally(() => location.reload());
+      } else {
+        location.reload();
+      }
+    }
+
+    function enterMainApp(statusLabel) {
+      document.getElementById('authGateOverlay').style.display = 'none';
+      document.getElementById('authEmailInput').value = '';
+      document.getElementById('authPasswordInput').value = '';
+      setAuthGateLoading(false);
+      clearAuthGateError();
+
+      const statusEl = document.getElementById('accountStatusDisplay');
+      if (statusEl) statusEl.textContent = statusLabel;
+
+      if (!isMainAppInitialized) {
+        isMainAppInitialized = true;
+        initMainApp();
+      }
+    }
+
+    // Firebase 로그인 세션 상태 감지 (자동 로그인 유지 포함)
+    fbAuth.onAuthStateChanged(async (user) => {
+      if (user) {
+        localStorage.removeItem(GUEST_MODE_KEY);
+        setAuthGateLoading(true);
+        await pullUserDataFromCloud(user.uid);
+        setAuthGateLoading(false);
+        enterMainApp('로그인 계정: ' + user.email);
+      } else if (localStorage.getItem(GUEST_MODE_KEY) === 'true') {
+        enterMainApp('게스트로 접속 중 (기기 저장)');
+      } else {
+        document.getElementById('authGateOverlay').style.display = 'flex';
+      }
+    });
 
     /* ==========================================
        테마 변경 로직 (확장된 테마 반영)
@@ -4414,9 +4786,9 @@
     }
 
     /* ==========================================
-       앱 초기화 실행
+       앱 초기화 실행 (로그인/게스트 진입 확정 후 1회 호출됨)
        ========================================== */
-    window.onload = function() {
+    function initMainApp() {
       loadTheme();
       renderMotto();
       renderNotes();
@@ -4438,7 +4810,7 @@
       renderPremiumThemes();
       checkPremiumThemeExpiry();
       updateGoalProgressBar();
-    };
+    }
   </script>
 </body>
 </html>
