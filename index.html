@@ -237,7 +237,7 @@
       background-color: var(--card-bg);
       border-bottom: 1px solid var(--border);
       display: flex;
-      justify-content: center;
+      justify-content: safe center;
       gap: 8px;
       padding: 10px 20px;
       overflow-x: auto;
@@ -2323,6 +2323,20 @@
 
     function renderVocabBooks() {
       const container = document.getElementById('vocabBooksContainer');
+      const activeEl = document.activeElement;
+      const focusedBookId = (activeEl && activeEl.id && activeEl.id.startsWith('vocabSearchInput-'))
+        ? activeEl.id.replace('vocabSearchInput-', '')
+        : null;
+      const cursorPos = focusedBookId ? activeEl.selectionStart : null;
+      const openBookIds = Array.from(container.querySelectorAll('.vocab-book-item.open')).map(el => el.id.replace('vocab-book-', ''));
+
+      // 컨테이너를 비우기 전에 각 단어장의 현재 검색어를 미리 저장해둔다.
+      // (비운 뒤에 getElementById로 읽으면 요소가 이미 사라져 항상 빈 값이 됨)
+      const searchQueries = {};
+      container.querySelectorAll('input[id^="vocabSearchInput-"]').forEach(input => {
+        searchQueries[input.id.replace('vocabSearchInput-', '')] = input.value;
+      });
+
       container.innerHTML = '';
 
       if (vocabBooks.length === 0) {
@@ -2332,11 +2346,12 @@
 
       vocabBooks.forEach((book) => {
         const bookItem = document.createElement('div');
-        bookItem.className = 'vocab-book-item';
+        bookItem.className = 'vocab-book-item' + (openBookIds.includes(book.id) ? ' open' : '');
         bookItem.id = `vocab-book-${book.id}`;
 
         let wordsTableRows = '';
-        const searchQuery = (document.getElementById(`vocabSearchInput-${book.id}`)?.value || '').toLowerCase().trim();
+        const rawSearchValue = searchQueries[book.id] || '';
+        const searchQuery = rawSearchValue.toLowerCase().trim();
         
         const filteredWords = book.words.filter(w => 
           !searchQuery || 
@@ -2372,7 +2387,7 @@
           <div class="vocab-book-body">
             <!-- 내부 검색창 -->
             <div class="form-group">
-              <input type="text" id="vocabSearchInput-${book.id}" class="form-control" placeholder="단어 또는 뜻 검색..." value="${escapeHtml(searchQuery)}" oninput="renderVocabBooks()">
+              <input type="text" id="vocabSearchInput-${book.id}" class="form-control" placeholder="단어 또는 뜻 검색..." value="${escapeHtml(rawSearchValue)}" oninput="renderVocabBooks()">
             </div>
             <!-- 단어 추가 폼 -->
             <form onsubmit="addWord(event, '${book.id}')" style="margin-bottom:15px;">
@@ -2401,6 +2416,14 @@
         `;
         container.appendChild(bookItem);
       });
+
+      if (focusedBookId) {
+        const newInput = document.getElementById(`vocabSearchInput-${focusedBookId}`);
+        if (newInput) {
+          newInput.focus();
+          if (cursorPos !== null) newInput.setSelectionRange(cursorPos, cursorPos);
+        }
+      }
     }
 
     function toggleVocabAccordion(bookId) {
